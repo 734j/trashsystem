@@ -56,7 +56,7 @@ struct initial_path_info *fill_ipi() { // Function for filling out initial_path_
 	homepath = getenv(ENVVAR_HOME);
 
 	if (homepath == NULL) {
-		fprintf(stderr, "fill_ipi(): Getenv failed");
+		fprintf(stderr, "fill_ipi(): getenv failed");
 		free_ipi(ipi);
 		exit(EXIT_FAILURE);
 	}
@@ -96,10 +96,48 @@ int check_create_ts_dirs(struct initial_path_info *ipi) { // 1. Check if trashsy
 	return 0;
 }
 
-/*
-int trash_file(struct trashsys_log_info tli) {
 
+int tli_fill_info (struct trashsys_log_info *tli, char* filename, bool log_tmp) {
+	/*	
+struct trashsys_log_info {
+	uint64_t ts_log_id;
+	char ts_log_filename[255]; X
+	size_t ts_log_filesize; X
+	time_t ts_log_trashtime; X
+	char ts_log_originalpath[4096]; X
+	bool ts_log_tmp; X
+};
+	*/
+	char *rp;
+	rp = realpath(filename, NULL); // get full entire path of the file
+	tli->ts_log_originalpath[0] = '\0';
+	tli->ts_log_filename[0] = '\0';
+	strcat(tli->ts_log_originalpath, rp);
+	free(rp);
+	strcat(tli->ts_log_filename, filename);
+
+	tli->ts_log_tmp = log_tmp; // tmp or not?
+	tli->ts_log_trashtime = time(NULL); // record current time
+
+	FILE *file = fopen(filename, "r"); // We get the filesize in bytes
+	fseek(file, 0, SEEK_END);
+	long filesize = ftell(file);
+	fclose(file);
+	tli->ts_log_filesize = (size_t)filesize;
 	
+	fprintf(stdout, "fullpath: %s\nfilename: %s\ntime: %ld\ntmp: %d\nsize: %ld\n", tli->ts_log_originalpath, tli->ts_log_filename, tli->ts_log_trashtime, tli->ts_log_tmp, tli->ts_log_filesize);
+
+	return 0;
+}
+
+/*
+int trash_file(struct trashsys_log_info tli, struct initial_path_info *ipi) {
+
+	// name
+	// full path
+	// filesize
+	// time of deletion
+	// other info?
 	return 0;
 }
 */
@@ -155,6 +193,9 @@ int main (int argc, char *argv[]) {
 		free_ipi(ipi_m);
 		return EXIT_FAILURE;
 	}
+
+	struct trashsys_log_info tli_m;
+	tli_fill_info(&tli_m , "myfile.img", false);
 	free_ipi(ipi_m);
 	
 	bool y_used = false;
