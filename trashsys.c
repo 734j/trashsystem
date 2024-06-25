@@ -4,8 +4,17 @@
 #include <stdlib.h>
 #include <unistd.h>
 #include <time.h>
+#include <fcntl.h>
+#include <errno.h>
+#include <sys/stat.h>
+#include <pwd.h>
+#include <string.h>
 
 #define USAGE "to be decided"
+#define MODE_NORMAL -1
+#define MODE_YES 0
+#define MODE_NO 1
+#define ENVVAR_HOME "HOME"
 
 struct trashsys_log_info {
 	uint64_t ts_log_id;
@@ -16,6 +25,119 @@ struct trashsys_log_info {
 	bool ts_log_tmp;
 };
 
+struct initial_path_info { // Initial useful strings to create before we start checking if certain directories or files exist.
+	char *ts_path_user_home;
+	char *ts_path_trashsys;
+	char *ts_path_log;
+	char *ts_path_trashed;
+};
+
+void free_ipi(struct initial_path_info *ipi) { // Free all info in initial_path_info created from fill_ipi
+	free(ipi->ts_path_user_home);
+	free(ipi->ts_path_trashsys);
+	free(ipi->ts_path_log);
+	free(ipi->ts_path_trashed);
+	free(ipi);
+}
+
+struct initial_path_info *fill_ipi() { // Function for filling out initial_path_info so it can be used later
+
+	struct initial_path_info *ipi = malloc(sizeof(struct initial_path_info));
+	ipi->ts_path_user_home = malloc(sizeof(char) * 4096);
+	ipi->ts_path_trashsys = malloc(sizeof(char) * 4096);
+	ipi->ts_path_log = malloc(sizeof(char) * 4096);
+	ipi->ts_path_trashed = malloc(sizeof(char) * 4096);
+	
+	ipi->ts_path_user_home[0] = '\0';
+	ipi->ts_path_trashsys[0] = '\0';
+	ipi->ts_path_log[0] = '\0';
+	ipi->ts_path_trashed[0] = '\0';
+	char *homepath;
+	homepath = getenv(ENVVAR_HOME);
+
+	if (homepath == NULL) {
+		fprintf(stderr, "fill_ipi(): Getenv failed");
+		free_ipi(ipi);
+		exit(EXIT_FAILURE);
+	}
+	// top level =  "/.trashsys"
+	// log = "/log"
+	// trashed = "/trashed"
+	strcat(ipi->ts_path_user_home, homepath); // Fill home path
+	strcat(ipi->ts_path_trashsys, homepath); // fill toplevel ts path
+	strcat(ipi->ts_path_trashsys, "/.trashsys"); // 2nd step to fill toplevel ts path
+
+	strcat(ipi->ts_path_log, ipi->ts_path_trashsys); // fill log path
+	strcat(ipi->ts_path_log, "/log"); // 2nd step fill log path
+
+	strcat(ipi->ts_path_trashed, ipi->ts_path_trashsys); // fill trashed path
+	strcat(ipi->ts_path_trashed, "/trashed"); // 2nd step fill trashed path
+	return ipi;
+}
+
+int check_create_ts_dirs(struct initial_path_info *ipi) { // 1. Check if trashsys toplevel exists 2. Check if log exists 3. Check if trashed exists 
+
+	int mkd;
+  	mkd = mkdir(ipi->ts_path_trashsys, 0755);
+	if (mkd < 0) {
+		if (errno == EEXIST) { fprintf(stderr, ".trashsys exists\n"); } else { return -1; }
+	}
+	
+	mkd = mkdir(ipi->ts_path_log, 0755);
+	if (mkd < 0) {
+		if (errno == EEXIST) { fprintf(stderr, "log exists\n"); } else { return -1; }
+	}
+	
+	mkd = mkdir(ipi->ts_path_trashed, 0755);
+	if (mkd < 0) {
+		if (errno == EEXIST) { fprintf(stderr, "trashed exists\n"); } else { return -1; }
+	}
+    
+	return 0;
+}
+
+/*
+int trash_file(struct trashsys_log_info tli) {
+
+	
+	return 0;
+}
+*/
+int choice(int mode) {
+
+    char choice;
+    char modechoice;
+
+    do {
+
+    if (mode == MODE_NORMAL) { fputs("[Y / N] ? ", stdout); }
+    if (mode == MODE_YES) { fputs("[Y / n] ? ", stdout); }
+    if (mode == MODE_NO) { fputs("[y / N] ? ", stdout); }
+
+    choice = getchar();
+    if (choice == '\n' && mode == MODE_YES) { modechoice = 'Y'; choice = modechoice; goto modeskip;}
+    if (choice == '\n' && mode == MODE_NO) { modechoice = 'N'; choice = modechoice; goto modeskip;}
+    if (choice == '\n' && mode == MODE_NORMAL) { continue; }
+
+    while ('\n' != getchar());
+
+    } while ( (choice != 'Y') && (choice != 'y') && (choice != 'N') && (choice != 'n') );
+
+    modeskip:
+
+    if ( (choice == 'Y') || (choice == 'y') ) 
+    {
+        return 0;
+    }
+
+    if ((choice == 'N') || (choice == 'n') )
+    {
+        return 1;
+    }
+
+    return EXIT_FAILURE;
+}
+
 int main (int argc, char *argv[]) {
 
 	if (argc == 1) {
@@ -23,6 +145,18 @@ int main (int argc, char *argv[]) {
         return EXIT_FAILURE;
     }
 
+	struct initial_path_info *ipi_m;
+	int cctd;
+	ipi_m = fill_ipi();
+	fprintf(stdout, "%s\n%s\n%s\n%s\n", ipi_m->ts_path_user_home, ipi_m->ts_path_trashsys, ipi_m->ts_path_log, ipi_m->ts_path_trashed);
+	cctd = check_create_ts_dirs(ipi_m);
+	if(cctd == -1) {
+		fprintf(stderr, "check_create_ts_dirs(): Cannot create directories\n");
+		free_ipi(ipi_m);
+		return EXIT_FAILURE;
+	}
+	free_ipi(ipi_m);
+	
 	bool y_used = false;
 	bool n_used = false;
 	bool v_used = false;
@@ -36,8 +170,8 @@ int main (int argc, char *argv[]) {
 	bool R_used = false;
 	
     int opt;
-    int returnval;
-    char *optarg_copy = NULL; // We will copy optarg to this
+    //int returnval;
+    //char *optarg_copy = NULL; // We will copy optarg to this
     while ((opt = getopt(argc, argv, "ynvfatlLcCR:")) != -1) {
         switch (opt) {
         case 'y':
@@ -97,8 +231,11 @@ int main (int argc, char *argv[]) {
 		break;
         }
     }
-	
 
+	if(false) { // This is just so the compiler wont complain
+		fprintf(stdout, "%d%d%d%d%d%d%d%d%d%d%d", R_used, C_used, c_used, L_used, l_used, t_used, a_used, f_used, v_used, n_used, y_used);
+	}
+	
     if (n_used == true && y_used == true) { // If both YES and NO are used print usage and exit
         fprintf(stderr, "%s", USAGE);
         return EXIT_FAILURE;
