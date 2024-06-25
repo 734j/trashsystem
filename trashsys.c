@@ -9,6 +9,7 @@
 #include <sys/stat.h>
 #include <pwd.h>
 #include <string.h>
+#include <libgen.h>
 
 #define USAGE "to be decided"
 #define MODE_NORMAL -1
@@ -114,7 +115,7 @@ struct trashsys_log_info {
 	tli->ts_log_filename[0] = '\0';
 	strcat(tli->ts_log_originalpath, rp);
 	free(rp);
-	strcat(tli->ts_log_filename, filename);
+	strcat(tli->ts_log_filename, basename(filename)); // record filename and basename it
 
 	tli->ts_log_tmp = log_tmp; // tmp or not?
 	tli->ts_log_trashtime = time(NULL); // record current time
@@ -195,7 +196,7 @@ int main (int argc, char *argv[]) {
 	}
 
 	struct trashsys_log_info tli_m;
-	tli_fill_info(&tli_m , "myfile.img", false);
+	tli_fill_info(&tli_m , "../myfile.img", false);
 	free_ipi(ipi_m);
 	
 	bool y_used = false;
