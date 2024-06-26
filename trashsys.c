@@ -19,7 +19,7 @@
 #define MODE_NO 1
 #define ENVVAR_HOME "HOME"
 
-bool v_cvm_fprintf = false;
+bool v_cvm_fprintf = true;
 
 struct trashsys_log_info {
 	uint64_t ts_log_id;
@@ -83,11 +83,15 @@ void free_ipi(struct initial_path_info *ipi) { // Free all info in initial_path_
 
 struct initial_path_info *fill_ipi() { // Function for filling out initial_path_info so it can be used later
 
+	#define MY_PATH_MAX PATH_MAX
+	char *ts_toplevel = "/.trashsys";
+	char *ts_log = "/log";	
+   	char *ts_trashed = "/trashed";
 	struct initial_path_info *ipi = malloc(sizeof(struct initial_path_info));
-	ipi->ts_path_user_home = malloc(sizeof(char) * 4096);
-	ipi->ts_path_trashsys = malloc(sizeof(char) * 4096);
-	ipi->ts_path_log = malloc(sizeof(char) * 4096);
-	ipi->ts_path_trashed = malloc(sizeof(char) * 4096);
+	ipi->ts_path_user_home = malloc(sizeof(char) * MY_PATH_MAX);
+	ipi->ts_path_trashsys = malloc(sizeof(char) * MY_PATH_MAX);
+	ipi->ts_path_log = malloc(sizeof(char) * MY_PATH_MAX);
+	ipi->ts_path_trashed = malloc(sizeof(char) * MY_PATH_MAX);
 	
 	ipi->ts_path_user_home[0] = '\0';
 	ipi->ts_path_trashsys[0] = '\0';
@@ -101,20 +105,46 @@ struct initial_path_info *fill_ipi() { // Function for filling out initial_path_
 		free_ipi(ipi);
 		exit(EXIT_FAILURE);
 	}
-	// top level =  "/.trashsys"
-	// log = "/log"
-	// trashed = "/trashed"
+	
 	//char *concat_str(char *final, ssize_t rem_size, const char *from);
-   	//concat_str(ipi->ts_path_user_home, PATH_MAX, homepath);
-	strcat(ipi->ts_path_user_home, homepath); // Fill home path
-	strcat(ipi->ts_path_trashsys, homepath); // fill toplevel ts path
-	strcat(ipi->ts_path_trashsys, "/.trashsys"); // 2nd step to fill toplevel ts path
+   	concat_str(ipi->ts_path_user_home, MY_PATH_MAX, homepath); // we are only doing it once so this is fine
 
-	strcat(ipi->ts_path_log, ipi->ts_path_trashsys); // fill log path
-	strcat(ipi->ts_path_log, "/log"); // 2nd step fill log path
+	if(concat_str(ipi->ts_path_trashsys, MY_PATH_MAX, homepath) == NULL) {
+		fprintf(stderr, "fill_ipi: path is too long\n");
+		free_ipi(ipi);
+		exit(EXIT_FAILURE);
+	}
+	ssize_t tl_max_path = MY_PATH_MAX;
+	tl_max_path = tl_max_path - strlen(ts_toplevel);
+	if(concat_str(ipi->ts_path_trashsys, tl_max_path, ts_toplevel) == NULL) {
+		fprintf(stderr, "fill_ipi: path is too long\n");
+		free_ipi(ipi);
+		exit(EXIT_FAILURE);
+	}
 
-	strcat(ipi->ts_path_trashed, ipi->ts_path_trashsys); // fill trashed path
-	strcat(ipi->ts_path_trashed, "/trashed"); // 2nd step fill trashed path
+	if(concat_str(ipi->ts_path_log, MY_PATH_MAX, ipi->ts_path_trashsys) == NULL) {
+		fprintf(stderr, "fill_ipi: path is too long\n");
+		exit(EXIT_FAILURE);
+	}
+	tl_max_path = MY_PATH_MAX;
+	tl_max_path = tl_max_path - strlen(ts_log);
+	if(concat_str(ipi->ts_path_log, tl_max_path, ts_log) == NULL) {
+		fprintf(stderr, "fill_ipi: path is too long\n");
+		free_ipi(ipi);
+		exit(EXIT_FAILURE);
+	}
+
+	if(concat_str(ipi->ts_path_trashed, MY_PATH_MAX, ipi->ts_path_trashsys) == NULL) {
+		fprintf(stderr, "fill_ipi: path is too long\n");
+		exit(EXIT_FAILURE);
+	}
+	tl_max_path = MY_PATH_MAX;
+	tl_max_path = tl_max_path - strlen(ts_trashed);
+	if(concat_str(ipi->ts_path_trashed, tl_max_path, ts_trashed) == NULL) {
+		fprintf(stderr, "fill_ipi: path is too long\n");
+		free_ipi(ipi);
+		exit(EXIT_FAILURE);
+	}
 	return ipi;
 }
 
