@@ -1,3 +1,5 @@
-1. Create check_create_ts_dirs
-2. Perform testing on it
-3. For now we are just warning the user to set the env variable HOME to your home dir but maybe we want to handle this even if its not set?
+1. Finish find highest ID
+2. Clean up some code, remove redundancy and make everything a little smarter where i can.
+3. Change fill_ipi function again because i found a slightly better way to do things
+4. Start implementing some commandline arguments. I will probably start with -v (verbose) and -y/-n.
+?. For now we are just warning the user to set the env variable HOME to your home dir but maybe we want to handle this even if its not set?
