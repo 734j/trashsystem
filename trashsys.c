@@ -219,6 +219,19 @@ uint64_t find_highest_id (struct initial_path_info *ipi) { // Find highest id an
 		
 		if(S_ISREG(d_or_f.st_mode)) { // check if given file is actually a file
 			fprintf(stdout, "%s\n", ddd->d_name);
+			char *endptr;
+			uint64_t strtoull_ID = strtoull(ddd->d_name, &endptr, 10);
+			if(ddd->d_name == endptr) {
+				cvm_fprintf(v_cvm_fprintf, stdout, "d_name == endptr | d_name: %p | endptr: %p | d_name string: %s\n", ddd->d_name, endptr, ddd->d_name);
+				continue;
+			}
+			if(*endptr != ':') {
+				cvm_fprintf(v_cvm_fprintf, stdout, "':' not found for file: %s\n", ddd->d_name);
+				continue;
+			}
+			if(strtoull_ID > id) { // If id is bigger then update it
+				id = strtoull_ID;
+			}
 		}
 		
 	}
@@ -226,10 +239,11 @@ uint64_t find_highest_id (struct initial_path_info *ipi) { // Find highest id an
 	return id;
 }
 
-int tli_fill_info (struct trashsys_log_info *tli, char* filename, bool log_tmp, struct initial_path_info *ipi) {
+int tli_fill_info (struct trashsys_log_info *tli, char* filename, bool log_tmp, struct initial_path_info *ipi) { 
+	// This function will be the main function that gathers and fills out info that will be in the log file for a file a user wants to trash
 	/*	
 struct trashsys_log_info {
-	uint64_t ts_log_id; // Find a new suitable ID for this new file
+	uint64_t ts_log_id; X
 	char ts_log_filename[FILENAME_MAX]; X
 	size_t ts_log_filesize; X
 	time_t ts_log_trashtime; X
@@ -261,7 +275,8 @@ struct trashsys_log_info {
 	fclose(file);
 	tli->ts_log_filesize = (size_t)filesize;
 
-	tli->ts_log_id = find_highest_id(ipi);
+	uint64_t ID = find_highest_id(ipi);
+	tli->ts_log_id = ID + 1; // +1 because if we are making a new file we need to give it one above highest ID.
 	
 	return 0;
 }

@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS_TESTBIN=-O3 -Wfatal-errors -Wall -Werror -Wextra -g -fsanitize=address -Wpedantic -std=gnu99
+CFLAGS_TESTBIN=-O0 -Wfatal-errors -Wall -Werror -Wextra -g -fsanitize=address -Wpedantic -std=gnu99
 CFLAGS=-O3 -flto -march=native -DNDEBUG -fomit-frame-pointer -s -static -std=gnu99
 TARGET=tsr
 TESTTARGET=tsr-TESTING
