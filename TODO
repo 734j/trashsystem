@@ -1,5 +1,6 @@
-1. Start implementing some commandline arguments. I will probably start with -v (verbose) and -y/-n.
-2. Clean up some code, remove redundancy and make everything a little smarter where i can.
-3. 
-4. 
+1. Implement function to move the file to the trash.
+2. Implement function to read log files? And maybe act upon the read contents? I'll have to think more about this.
+3. Function to find filenames
+4. Clean up some code, remove redundancy and make everything a little smarter where i can
+5. 
 ?. For now we are just warning the user to set the env variable HOME to your home dir but maybe we want to handle this even if its not set?
