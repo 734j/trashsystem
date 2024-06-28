@@ -19,7 +19,7 @@
 #define MODE_NO 1
 #define ENVVAR_HOME "HOME"
 
-bool v_cvm_fprintf = true;
+bool v_cvm_fprintf = false;
 
 struct trashsys_log_info {
 	uint64_t ts_log_id;
@@ -31,10 +31,10 @@ struct trashsys_log_info {
 };
 
 struct initial_path_info { // Initial useful strings to create before we start checking if certain directories or files exist.
-	char *ts_path_user_home;
-	char *ts_path_trashsys;
-	char *ts_path_log;
-	char *ts_path_trashed;
+	char ts_path_user_home[PATH_MAX];
+	char ts_path_trashsys[PATH_MAX];
+	char ts_path_log[PATH_MAX];
+	char ts_path_trashed[PATH_MAX];
 };
 
 int cvm_fprintf(bool ONOROFF, FILE *stream, const char *format, ...) {
@@ -74,10 +74,10 @@ char *concat_str(char *final, ssize_t rem_size, const char *from) {
 }
 
 void free_ipi(struct initial_path_info *ipi) { // Free all info in initial_path_info created from fill_ipi
-	free(ipi->ts_path_user_home);
-	free(ipi->ts_path_trashsys);
-	free(ipi->ts_path_log);
-	free(ipi->ts_path_trashed);
+	//free(ipi->ts_path_user_home);
+	//free(ipi->ts_path_trashsys);
+	//free(ipi->ts_path_log);
+	//free(ipi->ts_path_trashed);
 	free(ipi);
 	cvm_fprintf(v_cvm_fprintf, stderr, "initial_path_info free'd\n");
 }
@@ -90,10 +90,10 @@ struct initial_path_info *fill_ipi() { // Function for filling out initial_path_
    	char *ts_trashed = "/trashed";
 	char *homepath;
 	struct initial_path_info *ipi = malloc(sizeof(struct initial_path_info)); // malloc memory to struct
-	ipi->ts_path_user_home = malloc(sizeof(char) * MY_PATH_MAX); // Allocate memory to the struct char pointers so they actually point somewhere
-	ipi->ts_path_trashsys = malloc(sizeof(char) * MY_PATH_MAX);
-	ipi->ts_path_log = malloc(sizeof(char) * MY_PATH_MAX);
-	ipi->ts_path_trashed = malloc(sizeof(char) * MY_PATH_MAX);
+	//ipi->ts_path_user_home = malloc(sizeof(char) * MY_PATH_MAX); // Allocate memory to the struct char pointers so they actually point somewhere
+	//ipi->ts_path_trashsys = malloc(sizeof(char) * MY_PATH_MAX);
+	//ipi->ts_path_log = malloc(sizeof(char) * MY_PATH_MAX);
+	//ipi->ts_path_trashed = malloc(sizeof(char) * MY_PATH_MAX);
 	
 	ipi->ts_path_user_home[0] = '\0'; // Add null character to all of them because we'll be using concat_str (basically strcat) later
 	ipi->ts_path_trashsys[0] = '\0';
@@ -253,6 +253,9 @@ struct trashsys_log_info {
 	*/
 	char *rp;
 	rp = realpath(filename, NULL); // get full entire path of the file
+	if (rp == NULL) {
+		return -1;
+	}
 	tli->ts_log_originalpath[0] = '\0';
 	tli->ts_log_filename[0] = '\0';
 
@@ -333,22 +336,6 @@ int main (int argc, char *argv[]) {
         fprintf(stderr, "%s: please specify a filename\n%s\n", argv[0], USAGE);
         return EXIT_FAILURE;
     }
-
-	struct initial_path_info *ipi_m; // _m because i just want to keep in mind that we're in main which is a bit easier for me
-	struct trashsys_log_info tli_m;
-	int cctd;
-
-	ipi_m = fill_ipi(); // Fill out ipi struct
-	cctd = check_create_ts_dirs(ipi_m); // check for or create directories
-	if(cctd == -1) {
-		fprintf(stderr, "check_create_ts_dirs(): Cannot create directories\n");
-		free_ipi(ipi_m);
-		return EXIT_FAILURE;
-	}
-
-	tli_fill_info(&tli_m , "../myfile.img", false, ipi_m);
-   	cvm_fprintf(v_cvm_fprintf, stdout, "ID: %ld\nfullpath: %s\nfilename: %s\ntime: %ld\ntmp: %d\nsize: %ld\n", tli_m.ts_log_id, tli_m.ts_log_originalpath, tli_m.ts_log_filename, tli_m.ts_log_trashtime, tli_m.ts_log_tmp, tli_m.ts_log_filesize);
-	free_ipi(ipi_m);
 	
 	bool y_used = false;
 	bool n_used = false;
@@ -428,10 +415,33 @@ int main (int argc, char *argv[]) {
 	if(false) { // This is just so the compiler wont complain
 		fprintf(stdout, "%d%d%d%d%d%d%d%d%d%d%d", R_used, C_used, c_used, L_used, l_used, t_used, a_used, f_used, v_used, n_used, y_used);
 	}
+	if (v_used == true) { v_cvm_fprintf = true; } // Verbose mode
 	
     if (n_used == true && y_used == true) { // If both YES and NO are used print usage and exit
         fprintf(stderr, "%s", USAGE);
         return EXIT_FAILURE;
     }
+	
+	struct initial_path_info *ipi_m; // _m because i just want to keep in mind that we're in main which is a bit easier for me
+	struct trashsys_log_info tli_m;
+	int cctd;
+
+	ipi_m = fill_ipi(); // Fill out ipi struct
+	fprintf(stdout, "sizeof ipi_m: %ld\n", sizeof(*ipi_m));
+	cctd = check_create_ts_dirs(ipi_m); // check for or create directories
+	if(cctd == -1) {
+		fprintf(stderr, "check_create_ts_dirs(): Cannot create directories\n");
+		free_ipi(ipi_m);
+		return EXIT_FAILURE;
+	}
+
+	if(tli_fill_info(&tli_m , "../myfile.img", false, ipi_m) == -1) { // Cannot find your file
+		fprintf(stderr, "Cannot find file: %s\n", basename("../myfile.img"));
+		free_ipi(ipi_m);
+		return EXIT_FAILURE;
+	}
+   	cvm_fprintf(v_cvm_fprintf, stdout, "ID: %ld\nfullpath: %s\nfilename: %s\ntime: %ld\ntmp: %d\nsize: %ld\n", tli_m.ts_log_id, tli_m.ts_log_originalpath, tli_m.ts_log_filename, tli_m.ts_log_trashtime, tli_m.ts_log_tmp, tli_m.ts_log_filesize);
+	free_ipi(ipi_m);
+	
 	return 0;
 }
