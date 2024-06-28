@@ -17,9 +17,11 @@
 #define MODE_NORMAL -1
 #define MODE_YES 0
 #define MODE_NO 1
+#define MODE_FORCE 2
 #define ENVVAR_HOME "HOME"
 
 bool v_cvm_fprintf = false;
+int choice_mode = MODE_NORMAL;
 
 struct trashsys_log_info {
 	uint64_t ts_log_id;
@@ -36,6 +38,24 @@ struct initial_path_info { // Initial useful strings to create before we start c
 	char ts_path_log[PATH_MAX];
 	char ts_path_trashed[PATH_MAX];
 };
+
+int handle_ynf(bool y_used, bool n_used, bool f_used) { // Will handle cases for y, n and f. Exits if any of these are used together.
+
+	int choice_mode_ynf = MODE_NORMAL;
+
+	if (n_used == true && y_used == true) { // If both YES and NO are used print usage and exit
+        fprintf(stderr, "%s", USAGE);
+        exit(EXIT_FAILURE);
+    } else if (n_used == true && f_used == true) { fprintf(stderr, "%s", USAGE); exit(EXIT_FAILURE); }
+	else if (y_used == true && f_used == true) { fprintf(stderr, "%s", USAGE); exit(EXIT_FAILURE); }
+
+	if (n_used == true) { choice_mode_ynf = MODE_NO; }
+   	if (y_used == true) { choice_mode_ynf = MODE_YES; }
+	if (f_used == true) { choice_mode_ynf = MODE_FORCE; }
+	
+	
+	return choice_mode_ynf;
+}
 
 int cvm_fprintf(bool ONOROFF, FILE *stream, const char *format, ...) {
     // a sort of debug fprintf
@@ -74,10 +94,6 @@ char *concat_str(char *final, ssize_t rem_size, const char *from) {
 }
 
 void free_ipi(struct initial_path_info *ipi) { // Free all info in initial_path_info created from fill_ipi
-	//free(ipi->ts_path_user_home);
-	//free(ipi->ts_path_trashsys);
-	//free(ipi->ts_path_log);
-	//free(ipi->ts_path_trashed);
 	free(ipi);
 	cvm_fprintf(v_cvm_fprintf, stderr, "initial_path_info free'd\n");
 }
@@ -90,10 +106,6 @@ struct initial_path_info *fill_ipi() { // Function for filling out initial_path_
    	char *ts_trashed = "/trashed";
 	char *homepath;
 	struct initial_path_info *ipi = malloc(sizeof(struct initial_path_info)); // malloc memory to struct
-	//ipi->ts_path_user_home = malloc(sizeof(char) * MY_PATH_MAX); // Allocate memory to the struct char pointers so they actually point somewhere
-	//ipi->ts_path_trashsys = malloc(sizeof(char) * MY_PATH_MAX);
-	//ipi->ts_path_log = malloc(sizeof(char) * MY_PATH_MAX);
-	//ipi->ts_path_trashed = malloc(sizeof(char) * MY_PATH_MAX);
 	
 	ipi->ts_path_user_home[0] = '\0'; // Add null character to all of them because we'll be using concat_str (basically strcat) later
 	ipi->ts_path_trashsys[0] = '\0';
@@ -218,7 +230,7 @@ uint64_t find_highest_id (struct initial_path_info *ipi) { // Find highest id an
 		stat(stat_fullpath, &d_or_f);
 		
 		if(S_ISREG(d_or_f.st_mode)) { // check if given file is actually a file
-			fprintf(stdout, "%s\n", ddd->d_name);
+			cvm_fprintf(v_cvm_fprintf, stdout, "is regular file: %s\n", ddd->d_name);
 			char *endptr;
 			uint64_t strtoull_ID = strtoull(ddd->d_name, &endptr, 10);
 			if(ddd->d_name == endptr) {
@@ -231,6 +243,7 @@ uint64_t find_highest_id (struct initial_path_info *ipi) { // Find highest id an
 			}
 			if(strtoull_ID > id) { // If id is bigger then update it
 				id = strtoull_ID;
+				cvm_fprintf(v_cvm_fprintf, stdout, "found higher ID: %d\n", id);
 			}
 		}
 		
@@ -241,16 +254,6 @@ uint64_t find_highest_id (struct initial_path_info *ipi) { // Find highest id an
 
 int tli_fill_info (struct trashsys_log_info *tli, char* filename, bool log_tmp, struct initial_path_info *ipi) { 
 	// This function will be the main function that gathers and fills out info that will be in the log file for a file a user wants to trash
-	/*	
-struct trashsys_log_info {
-	uint64_t ts_log_id; X
-	char ts_log_filename[FILENAME_MAX]; X
-	size_t ts_log_filesize; X
-	time_t ts_log_trashtime; X
-	char ts_log_originalpath[PATH_MAX]; X
-	bool ts_log_tmp; X
-};
-	*/
 	char *rp;
 	rp = realpath(filename, NULL); // get full entire path of the file
 	if (rp == NULL) {
@@ -305,7 +308,8 @@ int choice(int mode) {
     if (mode == MODE_NORMAL) { fputs("[Y / N] ? ", stdout); }
     if (mode == MODE_YES) { fputs("[Y / n] ? ", stdout); }
     if (mode == MODE_NO) { fputs("[y / N] ? ", stdout); }
-
+	if (mode == MODE_FORCE) { return 0; }
+	
     choice = getchar();
     if (choice == '\n' && mode == MODE_YES) { modechoice = 'Y'; choice = modechoice; goto modeskip;}
     if (choice == '\n' && mode == MODE_NO) { modechoice = 'N'; choice = modechoice; goto modeskip;}
@@ -356,22 +360,22 @@ int main (int argc, char *argv[]) {
         switch (opt) {
         case 'y':
 
-			y_used = true;
+			y_used = true; // YES on enter
 
         break;
         case 'n':
 
-            n_used = true;
+            n_used = true; // NO on enter
 
         break;
         case 'v':
 
-            v_used = true;
+            v_used = true; // Verbose debug mode
 
         break;
         case 'f':
 
-            f_used = true;
+            f_used = true; // choice will not ask, it will just say yes by default thus basically "forcing" it
 
         break;
 		case 'a':
@@ -416,18 +420,15 @@ int main (int argc, char *argv[]) {
 		fprintf(stdout, "%d%d%d%d%d%d%d%d%d%d%d", R_used, C_used, c_used, L_used, l_used, t_used, a_used, f_used, v_used, n_used, y_used);
 	}
 	if (v_used == true) { v_cvm_fprintf = true; } // Verbose mode
-	
-    if (n_used == true && y_used == true) { // If both YES and NO are used print usage and exit
-        fprintf(stderr, "%s", USAGE);
-        return EXIT_FAILURE;
-    }
+
+	choice_mode = handle_ynf(y_used, n_used, f_used);
+    choice(choice_mode);
 	
 	struct initial_path_info *ipi_m; // _m because i just want to keep in mind that we're in main which is a bit easier for me
 	struct trashsys_log_info tli_m;
 	int cctd;
 
 	ipi_m = fill_ipi(); // Fill out ipi struct
-	fprintf(stdout, "sizeof ipi_m: %ld\n", sizeof(*ipi_m));
 	cctd = check_create_ts_dirs(ipi_m); // check for or create directories
 	if(cctd == -1) {
 		fprintf(stderr, "check_create_ts_dirs(): Cannot create directories\n");
@@ -435,11 +436,17 @@ int main (int argc, char *argv[]) {
 		return EXIT_FAILURE;
 	}
 
-	if(tli_fill_info(&tli_m , "../myfile.img", false, ipi_m) == -1) { // Cannot find your file
-		fprintf(stderr, "Cannot find file: %s\n", basename("../myfile.img"));
-		free_ipi(ipi_m);
-		return EXIT_FAILURE;
+	int index;
+	for (index = optind ; index < argc ; index++) {
+		cvm_fprintf(v_cvm_fprintf, stdout, "%s\n", argv[index]);
+
+		if(tli_fill_info(&tli_m , argv[index], false, ipi_m) == -1) { // Cannot find your file
+			fprintf(stderr, "Cannot find file: %s\n", basename(argv[index]));
+			free_ipi(ipi_m);
+			return EXIT_FAILURE;
+		}
 	}
+	
    	cvm_fprintf(v_cvm_fprintf, stdout, "ID: %ld\nfullpath: %s\nfilename: %s\ntime: %ld\ntmp: %d\nsize: %ld\n", tli_m.ts_log_id, tli_m.ts_log_originalpath, tli_m.ts_log_filename, tli_m.ts_log_trashtime, tli_m.ts_log_tmp, tli_m.ts_log_filesize);
 	free_ipi(ipi_m);
 	
