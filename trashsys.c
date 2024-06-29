@@ -32,17 +32,24 @@ struct trashsys_log_info {
 	char ts_log_originalpath[PATH_MAX];
 	bool ts_log_tmp;
 };
-
-struct trashsys_additional_paths {
-	char ts_add_logfilename[PATH_MAX];
-	char ts_add_trashed_filename[PATH_MAX];
+		// full original path
+		// new full trash path
+		// new logfile path+fullname for fopen
+struct trashsys_dynamic_paths { // Full
+	char ts_orig_path_withname[PATH_MAX];
+	char ts_trash_path_withname[PATH_MAX];
+	char ts_log_path_withname[PATH_MAX];
 };
 
-struct initial_path_info { // Initial useful strings to create before we start checking if certain directories or files exist.
+struct initial_path_info { // Initial useful strings to create before we do anything. Super useful when programming.
 	char ts_path_user_home[PATH_MAX];
 	char ts_path_trashsys[PATH_MAX];
 	char ts_path_log[PATH_MAX];
 	char ts_path_trashed[PATH_MAX];
+	char ts_path_user_home_withslash[PATH_MAX];
+	char ts_path_trashsys_withslash[PATH_MAX];
+	char ts_path_log_withslash[PATH_MAX];
+	char ts_path_trashed_withslash[PATH_MAX];
 };
 
 int handle_ynf(bool y_used, bool n_used, bool f_used) { // Will handle cases for y, n and f. Exits if any of these are used together.
@@ -110,6 +117,9 @@ struct initial_path_info *fill_ipi() { // Function for filling out initial_path_
 	char *ts_toplevel = "/.trashsys";
 	char *ts_log = "/log";	
    	char *ts_trashed = "/trashed";
+   	char *ts_toplevel_withslash = "/.trashsys/";
+	char *ts_log_withslash = "/log/";	
+   	char *ts_trashed_withslash = "/trashed/";
 	char *homepath;
 	struct initial_path_info *ipi = malloc(sizeof(struct initial_path_info)); // malloc memory to struct
 	
@@ -117,7 +127,11 @@ struct initial_path_info *fill_ipi() { // Function for filling out initial_path_
 	ipi->ts_path_trashsys[0] = '\0';
 	ipi->ts_path_log[0] = '\0';
 	ipi->ts_path_trashed[0] = '\0';
-   
+   	ipi->ts_path_user_home_withslash[0] = '\0'; 
+	ipi->ts_path_trashsys_withslash[0] = '\0';
+	ipi->ts_path_log_withslash[0] = '\0';
+	ipi->ts_path_trashed_withslash[0] = '\0';
+	
 	homepath = getenv(ENVVAR_HOME); // Get the home path of the current user
 
 	if (homepath == NULL) {
@@ -125,49 +139,90 @@ struct initial_path_info *fill_ipi() { // Function for filling out initial_path_
 		free_ipi(ipi);
 		exit(EXIT_FAILURE);
 	}
-	
-	//char *concat_str(char *final, ssize_t rem_size, const char *from);
-   	concat_str(ipi->ts_path_user_home, MY_PATH_MAX, homepath); // we are only doing it once so PATH_MAX is fine
-
-	if(concat_str(ipi->ts_path_trashsys, MY_PATH_MAX, homepath) == NULL) { 
+   	ssize_t remaining_size = MY_PATH_MAX;
+	ssize_t remaining_size_2 = MY_PATH_MAX;
+	// /home/john
+	// /home/john/
+   	if(concat_str(ipi->ts_path_user_home, MY_PATH_MAX, homepath) == NULL
+	   || concat_str(ipi->ts_path_user_home_withslash, MY_PATH_MAX, homepath) == NULL) {
 		fprintf(stderr, "fill_ipi: path is too long\n");
 		free_ipi(ipi);
 		exit(EXIT_FAILURE);
 	}
-	ssize_t remaining_size = MY_PATH_MAX;
-	remaining_size = remaining_size - strlen(ts_toplevel); // Because we are using concat_str more than once we gotta calculate the space left
-	/*We do this same calculation process further down below as well*/
-	if(concat_str(ipi->ts_path_trashsys, remaining_size, ts_toplevel) == NULL) {
+	remaining_size = remaining_size - strlen("/");
+	if(concat_str(ipi->ts_path_user_home_withslash, remaining_size, "/") == NULL) {
 		fprintf(stderr, "fill_ipi: path is too long\n");
 		free_ipi(ipi);
 		exit(EXIT_FAILURE);
 	}
 
-	if(concat_str(ipi->ts_path_log, MY_PATH_MAX, ipi->ts_path_trashsys) == NULL) {
+	// /home/john/.trashsys
+	// /home/john/.trashsys/
+	if(concat_str(ipi->ts_path_trashsys, MY_PATH_MAX, homepath) == NULL
+	   || concat_str(ipi->ts_path_trashsys_withslash, MY_PATH_MAX, homepath) == NULL) { 
 		fprintf(stderr, "fill_ipi: path is too long\n");
+		free_ipi(ipi);
 		exit(EXIT_FAILURE);
 	}
 	remaining_size = MY_PATH_MAX;
+	remaining_size = remaining_size - strlen(ts_toplevel);
+	remaining_size_2 = remaining_size_2 - strlen(ts_toplevel_withslash);
+	if(concat_str(ipi->ts_path_trashsys, remaining_size, ts_toplevel) == NULL 
+	   || concat_str(ipi->ts_path_trashsys_withslash, remaining_size_2, ts_toplevel_withslash) == NULL) {
+		fprintf(stderr, "fill_ipi: path is too long\n");
+		free_ipi(ipi);
+		exit(EXIT_FAILURE);
+	}
+
+	// /home/john/.trashsys/log
+	// /home/john/.trashsys/log/
+	if(concat_str(ipi->ts_path_log, MY_PATH_MAX, ipi->ts_path_trashsys) == NULL
+	   || concat_str(ipi->ts_path_log_withslash, MY_PATH_MAX, ipi->ts_path_trashsys) == NULL) {
+		fprintf(stderr, "fill_ipi: path is too long\n");
+		free_ipi(ipi);
+		exit(EXIT_FAILURE);
+	}
+	remaining_size = MY_PATH_MAX;
+	remaining_size_2 = MY_PATH_MAX;
 	remaining_size = remaining_size - strlen(ts_log);
-	if(concat_str(ipi->ts_path_log, remaining_size, ts_log) == NULL) {
+	remaining_size_2 = remaining_size_2 - strlen(ts_log_withslash);
+	if(concat_str(ipi->ts_path_log, remaining_size, ts_log) == NULL
+	   || concat_str(ipi->ts_path_log_withslash, remaining_size_2, ts_log_withslash) == NULL) {
 		fprintf(stderr, "fill_ipi: path is too long\n");
 		free_ipi(ipi);
 		exit(EXIT_FAILURE);
 	}
 
-	if(concat_str(ipi->ts_path_trashed, MY_PATH_MAX, ipi->ts_path_trashsys) == NULL) {
+	// /home/john/.trashsys/trashed
+	// /home/john/.trashsys/trashed/
+	if(concat_str(ipi->ts_path_trashed, MY_PATH_MAX, ipi->ts_path_trashsys) == NULL
+	   || concat_str(ipi->ts_path_trashed_withslash, MY_PATH_MAX, ipi->ts_path_trashsys) == NULL) {
 		fprintf(stderr, "fill_ipi: path is too long\n");
+		free_ipi(ipi);
 		exit(EXIT_FAILURE);
 	}
 	remaining_size = MY_PATH_MAX;
+	remaining_size_2 = MY_PATH_MAX;
 	remaining_size = remaining_size - strlen(ts_trashed);
-	if(concat_str(ipi->ts_path_trashed, remaining_size, ts_trashed) == NULL) {
+	remaining_size_2 = remaining_size_2 - strlen(ts_trashed_withslash);
+	if(concat_str(ipi->ts_path_trashed, remaining_size, ts_trashed) == NULL
+	   || concat_str(ipi->ts_path_trashed_withslash, remaining_size_2, ts_trashed_withslash) == NULL) {
 		fprintf(stderr, "fill_ipi: path is too long\n");
 		free_ipi(ipi);
 		exit(EXIT_FAILURE);
 	}
 
-	cvm_fprintf(v_cvm_fprintf, stdout, "%s\n%s\n%s\n%s\n", ipi->ts_path_user_home, ipi->ts_path_trashsys, ipi->ts_path_log, ipi->ts_path_trashed);
+	cvm_fprintf(v_cvm_fprintf, stdout, "%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n"
+				, ipi->ts_path_user_home
+				, ipi->ts_path_trashsys
+				, ipi->ts_path_log
+				, ipi->ts_path_trashed
+				, ipi->ts_path_user_home_withslash
+				, ipi->ts_path_trashsys_withslash
+				, ipi->ts_path_log_withslash
+				, ipi->ts_path_trashed_withslash
+				);
+
 	return ipi;
 }
 
@@ -205,28 +260,18 @@ uint64_t find_highest_id (struct initial_path_info *ipi) { // Find highest id an
 	while ((ddd = readdir(dir)) != NULL) {
 		
 		// MUST BE TESTED MORE!!!
-		int path_max_int = PATH_MAX; // Temporary variable, good for testing
-		char stat_fullpath[path_max_int];
+		char stat_fullpath[PATH_MAX];
 		stat_fullpath[0] = '\0';
 
-		ssize_t sf_sz = path_max_int;
-		if(concat_str(stat_fullpath, sf_sz, ipi->ts_path_log) == NULL) {
+		ssize_t remaining_size = PATH_MAX;
+		if(concat_str(stat_fullpath, PATH_MAX, ipi->ts_path_log_withslash) == NULL) {
 			fprintf(stderr, "Path is too long\n"); // rare case but at least its handled
 			free_ipi(ipi);
 			exit(EXIT_FAILURE);
 		}
 
-		sf_sz = sf_sz - strlen(stat_fullpath);
-   		//fprintf(stdout, "%ld\n", sf_sz);
-		if(concat_str(stat_fullpath, sf_sz, "/") == NULL) {
-			fprintf(stderr, "Path is too long\n"); // rare case but at least its handled
-			free_ipi(ipi);
-			exit(EXIT_FAILURE);
-		}
-
-		sf_sz = sf_sz - strlen(stat_fullpath);
-		//fprintf(stdout, "%ld\n", sf_sz);		
-		if(concat_str(stat_fullpath, sf_sz, ddd->d_name) == NULL) {
+		remaining_size = remaining_size - strlen(stat_fullpath);
+		if(concat_str(stat_fullpath, remaining_size, ddd->d_name) == NULL) {
 			fprintf(stderr, "Path is too long\n"); // rare case but at least its handled
 			free_ipi(ipi);
 			exit(EXIT_FAILURE);
@@ -236,7 +281,7 @@ uint64_t find_highest_id (struct initial_path_info *ipi) { // Find highest id an
 		stat(stat_fullpath, &d_or_f);
 		
 		if(S_ISREG(d_or_f.st_mode)) { // check if given file is actually a file
-			cvm_fprintf(v_cvm_fprintf, stdout, "is regular file: %s\n", ddd->d_name);
+			cvm_fprintf(v_cvm_fprintf, stdout, "is regular file: %s\nstat_fullpath: %s\n", ddd->d_name, stat_fullpath);
 			char *endptr;
 			uint64_t strtoull_ID = strtoull(ddd->d_name, &endptr, 10);
 			if(ddd->d_name == endptr) {
@@ -293,25 +338,13 @@ int tli_fill_info (struct trashsys_log_info *tli, char* filename, bool log_tmp, 
 	return 0;
 }
 
-int write_log_file(struct initial_path_info *ipi, struct trashsys_log_info *tli, bool t_used_aka_tmp, struct trashsys_additional_paths *tap) {
-	/*
-	struct trashsys_log_info {
-	uint64_t ts_log_id;
-	char ts_log_filename[FILENAME_MAX]; // doublecheck this!
-	size_t ts_log_filesize;
-	time_t ts_log_trashtime;
-	char ts_log_originalpath[PATH_MAX];
-	bool ts_log_tmp;
-	};
+/*
+int prepare_log_paths(struct initial_path_info *ipi, struct trashsys_log_info *tli) {
 
-	struct initial_path_info { // Initial useful strings to create before we start checking if certain directories or files exist.
-	char ts_path_user_home[PATH_MAX];
-	char ts_path_trashsys[PATH_MAX];
-	char ts_path_log[PATH_MAX];
-	char ts_path_trashed[PATH_MAX];
-	};
+}
+*/
+int write_log_file(struct initial_path_info *ipi, struct trashsys_log_info *tli, bool t_used_aka_tmp) {
 
-	 */
 	char idstr[23];
 	char path_log_cur_file[PATH_MAX];
 	char *tmp_path = "/tmp/";
@@ -330,7 +363,6 @@ int write_log_file(struct initial_path_info *ipi, struct trashsys_log_info *tli,
 	rem_sz = rem_sz - strlen(path_log_cur_file);
 	concat_str(path_log_cur_file, rem_sz, tli->ts_log_filename); // Add the filename of the file we are trashing after the ID
 
-	concat_str(tap->ts_add_logfilename, PATH_MAX, path_log_cur_file);
 	fprintf(stdout, "plcf: %s\n", path_log_cur_file);
 	FILE *file = fopen(path_log_cur_file, "w");
 	if(file == NULL) {
@@ -485,18 +517,20 @@ int main (int argc, char *argv[]) {
 	for (index = optind ; index < argc ; index++) {
 		cvm_fprintf(v_cvm_fprintf, stdout, "%s\n", argv[index]);
    		struct trashsys_log_info tli_m;
-		struct trashsys_additional_paths tap;
+		//struct trashsys_dynamic_paths tap;
 
 		if(tli_fill_info(&tli_m , argv[index], false, ipi_m) == NOFILE) {
 			fprintf(stderr, "%s: error '%s': No such file or directory\n", basename(argv[0]), basename(argv[index]));
 			continue;
 		}
 
+		/*
 		if(write_log_file(ipi_m, &tli_m, t_used, &tap) == -1) {
 			fprintf(stderr, "%s: cannot create logfile\n", basename(argv[0]));
 			continue;
 		}
-		
+		*/
+		/*
 		concat_str(tap.ts_add_trashed_filename, PATH_MAX, ipi_m->ts_path_trashed);
 		int tap_maxsz = PATH_MAX;
 		tap_maxsz = tap_maxsz - strlen("/");
@@ -506,7 +540,7 @@ int main (int argc, char *argv[]) {
 		if(rename(tli_m.ts_log_originalpath, tap.ts_add_trashed_filename) == -1) {
 			continue;
 		}
-		
+		*/
 		cvm_fprintf(v_cvm_fprintf, stdout, "ID: %ld\nfullpath: %s\nfilename: %s\ntime: %ld\ntmp: %d\nsize: %ld\n", tli_m.ts_log_id, tli_m.ts_log_originalpath, tli_m.ts_log_filename, tli_m.ts_log_trashtime, tli_m.ts_log_tmp, tli_m.ts_log_filesize);
 	
 	}
