@@ -1,6 +1,7 @@
 1. Maybe make some new structs with paths and such to make combining paths a little less of a pain. If its already there then we can just use them with no problems.
-2. Implement function to read log files? And maybe act upon the read contents? I'll have to think more about this.
-3. Function to find filenames
-4. Clean up some code, remove redundancy and make everything a little smarter where i can
-5. 
+2. Fix that god awful bug where somehow the log filename paths dont get cleared from the string making fopen fail
+3. Implement function to read log files? And maybe act upon the read contents? I'll have to think more about this.
+4. Function to find filenames
+5. Clean up some code, remove redundancy and make everything a little smarter where i can
+6. 
 ?. For now we are just warning the user to set the env variable HOME to your home dir but maybe we want to handle this even if its not set?
