@@ -32,13 +32,11 @@ struct trashsys_log_info {
 	char ts_log_originalpath[PATH_MAX];
 	bool ts_log_tmp;
 };
-		// full original path
-		// new full trash path
-		// new logfile path+fullname for fopen
-struct trashsys_dynamic_paths { // Full
-	char ts_orig_path_withname[PATH_MAX];
-	char ts_trash_path_withname[PATH_MAX];
-	char ts_log_path_withname[PATH_MAX];
+
+struct dynamic_paths {
+	char old_trashfile_path[PATH_MAX];
+	char new_trashfile_path[PATH_MAX];
+	char new_logfile_path_incl_name[PATH_MAX];
 };
 
 struct initial_path_info { // Initial useful strings to create before we do anything. Super useful when programming.
@@ -306,6 +304,7 @@ uint64_t find_highest_id (struct initial_path_info *ipi) { // Find highest id an
 int tli_fill_info (struct trashsys_log_info *tli, char* filename, bool log_tmp, struct initial_path_info *ipi) { 
 	// This function will be the main function that gathers and fills out info that will be in the log file for a file a user wants to trash
 	char *rp;
+	time_t curtime;
 	rp = realpath(filename, NULL); // get full entire path of the file
 	if (rp == NULL) {
 		return NOFILE;
@@ -315,6 +314,7 @@ int tli_fill_info (struct trashsys_log_info *tli, char* filename, bool log_tmp, 
 
 	if(concat_str(tli->ts_log_originalpath, PATH_MAX, rp) == NULL) {
 		free_ipi(ipi);
+		free(rp);
 		exit(EXIT_FAILURE);
 	}
 	free(rp);
@@ -324,9 +324,11 @@ int tli_fill_info (struct trashsys_log_info *tli, char* filename, bool log_tmp, 
 	}
 
 	tli->ts_log_tmp = log_tmp; // tmp or not?
-	tli->ts_log_trashtime = time(NULL); // record current time
-
+	curtime = time(NULL);
+	if (curtime == -1) { free_ipi(ipi); exit(EXIT_FAILURE); }
+	tli->ts_log_trashtime = curtime;
 	FILE *file = fopen(filename, "r"); // We get the filesize in bytes
+	if(file == NULL) { return NOFILE; }
 	fseek(file, 0, SEEK_END);
 	long filesize = ftell(file);
 	fclose(file);
@@ -343,28 +345,55 @@ int prepare_log_paths(struct initial_path_info *ipi, struct trashsys_log_info *t
 
 }
 */
-int write_log_file(struct initial_path_info *ipi, struct trashsys_log_info *tli, bool t_used_aka_tmp) {
+int fill_dynamic_paths (struct initial_path_info *ipi, struct trashsys_log_info *tli, struct dynamic_paths *dp) {
+	/*
+	struct dynamic_paths {
+		char old_trashfile_path[PATH_MAX];
+		char new_trashfile_path[PATH_MAX];
+		char new_logfile_path_incl_name[PATH_MAX];
+	};
+	*/
+	ssize_t remaining_size = PATH_MAX;
+	dp->old_trashfile_path[0] = '\0';
+	dp->new_trashfile_path[0] = '\0';
+	dp->new_logfile_path_incl_name[0] = '\0';
+	// /path/to/my/file.txt
+	if(concat_str(dp->old_trashfile_path, PATH_MAX, tli->ts_log_originalpath) == NULL) { return -1; }
 
+	// /home/john/.trashsys/trashed/file.txt
+	if(concat_str(dp->new_trashfile_path, PATH_MAX, ipi->ts_path_trashed_withslash) == NULL) { return -1; }
+	remaining_size = remaining_size - strlen(tli->ts_log_filename);
+	if(concat_str(dp->new_trashfile_path, remaining_size, tli->ts_log_filename) == NULL) { return -1; }
+
+	// /home/john/.trashsys/log/35:file.txt
+	remaining_size = PATH_MAX;
 	char idstr[23];
-	char path_log_cur_file[PATH_MAX];
+	snprintf(idstr, 23, "%ld:", tli->ts_log_id);
+	concat_str(dp->new_logfile_path_incl_name, PATH_MAX, ipi->ts_path_log_withslash);
+	remaining_size = remaining_size - strlen(idstr);
+   	concat_str(dp->new_logfile_path_incl_name, remaining_size, idstr);
+	remaining_size = PATH_MAX;
+	remaining_size = remaining_size - strlen(tli->ts_log_filename);
+   	concat_str(dp->new_logfile_path_incl_name, remaining_size, tli->ts_log_filename);
+
+	cvm_fprintf(v_cvm_fprintf, stdout, "%s\n%s\n%s\n"
+			    , dp->old_trashfile_path
+				, dp->new_trashfile_path
+				, dp->new_logfile_path_incl_name
+				);
+	return 0;
+}
+
+int write_log_file(struct dynamic_paths *dp, struct trashsys_log_info *tli, bool t_used_aka_tmp) {
+
 	char *tmp_path = "/tmp/";
-	int rem_sz = PATH_MAX;
 
 	if (t_used_aka_tmp == true) {
 		fprintf(stdout, "%s", tmp_path);
 	}
-	
-	snprintf(idstr, 23, "/%ld:", tli->ts_log_id); // Take the ID and make it in to a string
-	concat_str(path_log_cur_file, PATH_MAX, ipi->ts_path_log); // Add log path to temporary file path
 
-	rem_sz = rem_sz - strlen(path_log_cur_file); 
-	concat_str(path_log_cur_file, rem_sz, idstr); // Add the ID to start of filename
-
-	rem_sz = rem_sz - strlen(path_log_cur_file);
-	concat_str(path_log_cur_file, rem_sz, tli->ts_log_filename); // Add the filename of the file we are trashing after the ID
-
-	fprintf(stdout, "plcf: %s\n", path_log_cur_file);
-	FILE *file = fopen(path_log_cur_file, "w");
+	fprintf(stdout, "plcf: %s\n", dp->new_logfile_path_incl_name);
+	FILE *file = fopen(dp->new_logfile_path_incl_name, "w");
 	if(file == NULL) {
 		printf("%s\n", strerror(errno));
 		return -1;
@@ -517,30 +546,26 @@ int main (int argc, char *argv[]) {
 	for (index = optind ; index < argc ; index++) {
 		cvm_fprintf(v_cvm_fprintf, stdout, "%s\n", argv[index]);
    		struct trashsys_log_info tli_m;
-		//struct trashsys_dynamic_paths tap;
+		struct dynamic_paths dp;
 
 		if(tli_fill_info(&tli_m , argv[index], false, ipi_m) == NOFILE) {
 			fprintf(stderr, "%s: error '%s': No such file or directory\n", basename(argv[0]), basename(argv[index]));
 			continue;
 		}
 
-		/*
-		if(write_log_file(ipi_m, &tli_m, t_used, &tap) == -1) {
+		if(fill_dynamic_paths(ipi_m, &tli_m, &dp) == -1) {
+			fprintf(stderr, "%s: cannot process paths\n", basename(argv[0]));
+			continue;
+		}
+		if(write_log_file(&dp, &tli_m, t_used) == -1) {
 			fprintf(stderr, "%s: cannot create logfile\n", basename(argv[0]));
 			continue;
 		}
-		*/
-		/*
-		concat_str(tap.ts_add_trashed_filename, PATH_MAX, ipi_m->ts_path_trashed);
-		int tap_maxsz = PATH_MAX;
-		tap_maxsz = tap_maxsz - strlen("/");
-		concat_str(tap.ts_add_trashed_filename, tap_maxsz, "/");
-		tap_maxsz = tap_maxsz - strlen(tli_m.ts_log_filename);
-		concat_str(tap.ts_add_trashed_filename, tap_maxsz, tli_m.ts_log_filename);
-		if(rename(tli_m.ts_log_originalpath, tap.ts_add_trashed_filename) == -1) {
+		
+		if(rename(dp.old_trashfile_path, dp.new_trashfile_path) == -1) {
 			continue;
 		}
-		*/
+		
 		cvm_fprintf(v_cvm_fprintf, stdout, "ID: %ld\nfullpath: %s\nfilename: %s\ntime: %ld\ntmp: %d\nsize: %ld\n", tli_m.ts_log_id, tli_m.ts_log_originalpath, tli_m.ts_log_filename, tli_m.ts_log_trashtime, tli_m.ts_log_tmp, tli_m.ts_log_filesize);
 	
 	}
