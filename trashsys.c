@@ -20,6 +20,8 @@
 #define MODE_FORCE 2
 #define ENVVAR_HOME "HOME"
 #define NOFILE 3
+#define FUNCTION_FAIL -1
+#define FUNCTION_SUCCESS 0
 
 bool v_cvm_fprintf = false;
 int choice_mode = MODE_NORMAL;
@@ -369,12 +371,12 @@ int fill_dynamic_paths (struct initial_path_info *ipi, struct trashsys_log_info 
 	remaining_size = PATH_MAX;
 	char idstr[23];
 	snprintf(idstr, 23, "%ld:", tli->ts_log_id);
-	concat_str(dp->new_logfile_path_incl_name, PATH_MAX, ipi->ts_path_log_withslash);
+	if(concat_str(dp->new_logfile_path_incl_name, PATH_MAX, ipi->ts_path_log_withslash) == NULL) { return -1; }
 	remaining_size = remaining_size - strlen(idstr);
-   	concat_str(dp->new_logfile_path_incl_name, remaining_size, idstr);
+   	if(concat_str(dp->new_logfile_path_incl_name, remaining_size, idstr) == NULL) { return -1; }
 	remaining_size = PATH_MAX;
 	remaining_size = remaining_size - strlen(tli->ts_log_filename);
-   	concat_str(dp->new_logfile_path_incl_name, remaining_size, tli->ts_log_filename);
+   	if(concat_str(dp->new_logfile_path_incl_name, remaining_size, tli->ts_log_filename) == NULL) { return -1; }
 
 	cvm_fprintf(v_cvm_fprintf, stdout, "%s\n%s\n%s\n"
 			    , dp->old_trashfile_path
@@ -398,6 +400,8 @@ int write_log_file(struct dynamic_paths *dp, struct trashsys_log_info *tli, bool
 		printf("%s\n", strerror(errno));
 		return -1;
 	}
+
+	/*this fprintf is what WRITES in to the logfile*/
 	fprintf(file, ";\n%ld\n%s\n%ld\n%ld\n%s\n%d\n;\n", tli->ts_log_id, tli->ts_log_filename, tli->ts_log_filesize, tli->ts_log_trashtime, tli->ts_log_originalpath, tli->ts_log_tmp);
 	
 	fclose(file);
@@ -522,12 +526,9 @@ int main (int argc, char *argv[]) {
 		break;
         }
     }
-
-	if(false) { // This is just so the compiler wont complain
-		fprintf(stdout, "%d%d%d%d%d%d%d%d%d%d%d", R_used, C_used, c_used, L_used, l_used, t_used, a_used, f_used, v_used, n_used, y_used);
-	}
+	
 	if (v_used == true) { v_cvm_fprintf = true; } // Verbose mode
-
+	cvm_fprintf(v_cvm_fprintf, stdout, "options RCcLltafvny: %d%d%d%d%d%d%d%d%d%d%d\n", R_used, C_used, c_used, L_used, l_used, t_used, a_used, f_used, v_used, n_used, y_used);
 	choice_mode = handle_ynf(y_used, n_used, f_used);
     choice(choice_mode);
 	
@@ -536,7 +537,7 @@ int main (int argc, char *argv[]) {
 
 	ipi_m = fill_ipi(); // Fill out ipi struct
 	cctd = check_create_ts_dirs(ipi_m); // check for or create directories
-	if(cctd == -1) {
+	if(cctd == FUNCTION_FAIL) {
 		fprintf(stderr, "check_create_ts_dirs(): Cannot create directories\n");
 		free_ipi(ipi_m);
 		return EXIT_FAILURE;
@@ -544,7 +545,6 @@ int main (int argc, char *argv[]) {
 
 	int index;
 	for (index = optind ; index < argc ; index++) {
-		cvm_fprintf(v_cvm_fprintf, stdout, "%s\n", argv[index]);
    		struct trashsys_log_info tli_m;
 		struct dynamic_paths dp;
 
