@@ -312,18 +312,17 @@ int write_log_file(struct initial_path_info *ipi, struct trashsys_log_info *tli,
 	};
 
 	 */
-	#define LOG_PATH_MAX PATH_MAX
 	char idstr[23];
-	char path_log_cur_file[LOG_PATH_MAX];
+	char path_log_cur_file[PATH_MAX];
 	char *tmp_path = "/tmp/";
-	int rem_sz = LOG_PATH_MAX;
+	int rem_sz = PATH_MAX;
 
 	if (t_used_aka_tmp == true) {
 		fprintf(stdout, "%s", tmp_path);
 	}
 	
 	snprintf(idstr, 23, "/%ld:", tli->ts_log_id); // Take the ID and make it in to a string
-	concat_str(path_log_cur_file, LOG_PATH_MAX, ipi->ts_path_log); // Add log path to temporary file path
+	concat_str(path_log_cur_file, PATH_MAX, ipi->ts_path_log); // Add log path to temporary file path
 
 	rem_sz = rem_sz - strlen(path_log_cur_file); 
 	concat_str(path_log_cur_file, rem_sz, idstr); // Add the ID to start of filename
@@ -332,9 +331,12 @@ int write_log_file(struct initial_path_info *ipi, struct trashsys_log_info *tli,
 	concat_str(path_log_cur_file, rem_sz, tli->ts_log_filename); // Add the filename of the file we are trashing after the ID
 
 	concat_str(tap->ts_add_logfilename, PATH_MAX, path_log_cur_file);
-	fprintf(stdout, "%s\n", path_log_cur_file);
+	fprintf(stdout, "plcf: %s\n", path_log_cur_file);
 	FILE *file = fopen(path_log_cur_file, "w");
-	if(file == NULL) { return -1; }
+	if(file == NULL) {
+		printf("%s\n", strerror(errno));
+		return -1;
+	}
 	fprintf(file, ";\n%ld\n%s\n%ld\n%ld\n%s\n%d\n;\n", tli->ts_log_id, tli->ts_log_filename, tli->ts_log_filesize, tli->ts_log_trashtime, tli->ts_log_originalpath, tli->ts_log_tmp);
 	
 	fclose(file);
@@ -469,9 +471,6 @@ int main (int argc, char *argv[]) {
     choice(choice_mode);
 	
 	struct initial_path_info *ipi_m; // _m because i just want to keep in mind that we're in main which is a bit easier for me
-	struct trashsys_log_info tli_m;
-	struct trashsys_additional_paths tap;
-
 	int cctd;
 
 	ipi_m = fill_ipi(); // Fill out ipi struct
@@ -485,21 +484,19 @@ int main (int argc, char *argv[]) {
 	int index;
 	for (index = optind ; index < argc ; index++) {
 		cvm_fprintf(v_cvm_fprintf, stdout, "%s\n", argv[index]);
-		
+   		struct trashsys_log_info tli_m;
+		struct trashsys_additional_paths tap;
+
 		if(tli_fill_info(&tli_m , argv[index], false, ipi_m) == NOFILE) {
 			fprintf(stderr, "%s: error '%s': No such file or directory\n", basename(argv[0]), basename(argv[index]));
 			continue;
 		}
 
 		if(write_log_file(ipi_m, &tli_m, t_used, &tap) == -1) {
-			fprintf(stderr, "%s: cannot create logfile", basename(argv[0]));
+			fprintf(stderr, "%s: cannot create logfile\n", basename(argv[0]));
 			continue;
 		}
-				/*struct trashsys_additinal_paths {
-	char ts_add_logfilename[PATH_MAX];
-	char ts_add_trashed_filename[PATH_MAX]
-};
-*/
+		
 		concat_str(tap.ts_add_trashed_filename, PATH_MAX, ipi_m->ts_path_trashed);
 		int tap_maxsz = PATH_MAX;
 		tap_maxsz = tap_maxsz - strlen("/");
@@ -513,7 +510,7 @@ int main (int argc, char *argv[]) {
 		cvm_fprintf(v_cvm_fprintf, stdout, "ID: %ld\nfullpath: %s\nfilename: %s\ntime: %ld\ntmp: %d\nsize: %ld\n", tli_m.ts_log_id, tli_m.ts_log_originalpath, tli_m.ts_log_filename, tli_m.ts_log_trashtime, tli_m.ts_log_tmp, tli_m.ts_log_filesize);
 	
 	}
-	
+
 	free_ipi(ipi_m);
 	
 	return 0;

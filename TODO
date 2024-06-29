@@ -1,4 +1,4 @@
-1. Implement function to move the file to the trash.
+1. Maybe make some new structs with paths and such to make combining paths a little less of a pain. If its already there then we can just use them with no problems.
 2. Implement function to read log files? And maybe act upon the read contents? I'll have to think more about this.
 3. Function to find filenames
 4. Clean up some code, remove redundancy and make everything a little smarter where i can
