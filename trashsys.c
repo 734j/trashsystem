@@ -28,7 +28,7 @@ int choice_mode = MODE_NORMAL;
 
 struct trashsys_log_info {
 	uint64_t ts_log_id;
-	char ts_log_filename[FILENAME_MAX]; // doublecheck this!
+	char ts_log_filename[FILENAME_MAX];
 	size_t ts_log_filesize;
 	time_t ts_log_trashtime;
 	char ts_log_originalpath[PATH_MAX];
@@ -38,6 +38,7 @@ struct trashsys_log_info {
 struct dynamic_paths {
 	char old_trashfile_path[PATH_MAX];
 	char new_trashfile_path[PATH_MAX];
+	char new_trashfile_filename[FILENAME_MAX];
 	char new_logfile_path_incl_name[PATH_MAX];
 };
 
@@ -348,39 +349,47 @@ int prepare_log_paths(struct initial_path_info *ipi, struct trashsys_log_info *t
 }
 */
 int fill_dynamic_paths (struct initial_path_info *ipi, struct trashsys_log_info *tli, struct dynamic_paths *dp) {
-	/*
-	struct dynamic_paths {
-		char old_trashfile_path[PATH_MAX];
-		char new_trashfile_path[PATH_MAX];
-		char new_logfile_path_incl_name[PATH_MAX];
-	};
-	*/
+	
 	ssize_t remaining_size = PATH_MAX;
 	dp->old_trashfile_path[0] = '\0';
 	dp->new_trashfile_path[0] = '\0';
 	dp->new_logfile_path_incl_name[0] = '\0';
+	dp->new_trashfile_filename[0] = '\0';
 	// /path/to/my/file.txt
 	if(concat_str(dp->old_trashfile_path, PATH_MAX, tli->ts_log_originalpath) == NULL) { return -1; }
 
+	// filename ID eg. '35:'
+	char idstr[23];
+	char *log_extension = ".log";
+	snprintf(idstr, 23, "%ld:", tli->ts_log_id);
+	
 	// /home/john/.trashsys/trashed/file.txt
 	if(concat_str(dp->new_trashfile_path, PATH_MAX, ipi->ts_path_trashed_withslash) == NULL) { return -1; }
+	remaining_size = remaining_size - strlen(idstr);
+	if(concat_str(dp->new_trashfile_path, remaining_size, idstr) == NULL) { return -1; }
+	remaining_size = PATH_MAX;
 	remaining_size = remaining_size - strlen(tli->ts_log_filename);
 	if(concat_str(dp->new_trashfile_path, remaining_size, tli->ts_log_filename) == NULL) { return -1; }
-
-	// /home/john/.trashsys/log/35:file.txt
-	remaining_size = PATH_MAX;
-	char idstr[23];
-	snprintf(idstr, 23, "%ld:", tli->ts_log_id);
+	
+	// /home/john/.trashsys/log/35:file.txt.log
 	if(concat_str(dp->new_logfile_path_incl_name, PATH_MAX, ipi->ts_path_log_withslash) == NULL) { return -1; }
+	remaining_size = PATH_MAX;
 	remaining_size = remaining_size - strlen(idstr);
    	if(concat_str(dp->new_logfile_path_incl_name, remaining_size, idstr) == NULL) { return -1; }
 	remaining_size = PATH_MAX;
 	remaining_size = remaining_size - strlen(tli->ts_log_filename);
    	if(concat_str(dp->new_logfile_path_incl_name, remaining_size, tli->ts_log_filename) == NULL) { return -1; }
-
-	cvm_fprintf(v_cvm_fprintf, stdout, "%s\n%s\n%s\n"
+	remaining_size = PATH_MAX;
+	remaining_size = remaining_size - strlen(log_extension);
+   	if(concat_str(dp->new_logfile_path_incl_name, remaining_size, log_extension) == NULL) { return -1; }
+	
+	// 35:file.txt
+	if(concat_str(dp->new_trashfile_filename, remaining_size, basename(dp->new_trashfile_path)) == NULL) { return -1; }
+    
+	cvm_fprintf(v_cvm_fprintf, stdout, "%s\n%s\n%s\n%s\n"
 			    , dp->old_trashfile_path
 				, dp->new_trashfile_path
+				, dp->new_trashfile_filename
 				, dp->new_logfile_path_incl_name
 				);
 	return 0;
@@ -394,7 +403,7 @@ int write_log_file(struct dynamic_paths *dp, struct trashsys_log_info *tli, bool
 		fprintf(stdout, "%s", tmp_path);
 	}
 
-	fprintf(stdout, "plcf: %s\n", dp->new_logfile_path_incl_name);
+	fprintf(stdout, "logfile path: %s\n", dp->new_logfile_path_incl_name);
 	FILE *file = fopen(dp->new_logfile_path_incl_name, "w");
 	if(file == NULL) {
 		printf("%s\n", strerror(errno));
@@ -402,7 +411,14 @@ int write_log_file(struct dynamic_paths *dp, struct trashsys_log_info *tli, bool
 	}
 
 	/*this fprintf is what WRITES in to the logfile*/
-	fprintf(file, ";\n%ld\n%s\n%ld\n%ld\n%s\n%d\n;\n", tli->ts_log_id, tli->ts_log_filename, tli->ts_log_filesize, tli->ts_log_trashtime, tli->ts_log_originalpath, tli->ts_log_tmp);
+	fprintf(file, ";\n%ld\n%s\n%s\n%ld\n%ld\n%s\n%d\n;\n"
+			, tli->ts_log_id
+			, tli->ts_log_filename
+			, dp->new_trashfile_filename
+			, tli->ts_log_filesize
+			, tli->ts_log_trashtime
+			, tli->ts_log_originalpath
+			, tli->ts_log_tmp);
 	
 	fclose(file);
 
@@ -566,7 +582,15 @@ int main (int argc, char *argv[]) {
 			continue;
 		}
 		
-		cvm_fprintf(v_cvm_fprintf, stdout, "ID: %ld\nfullpath: %s\nfilename: %s\ntime: %ld\ntmp: %d\nsize: %ld\n", tli_m.ts_log_id, tli_m.ts_log_originalpath, tli_m.ts_log_filename, tli_m.ts_log_trashtime, tli_m.ts_log_tmp, tli_m.ts_log_filesize);
+		cvm_fprintf(v_cvm_fprintf, stdout, "ID: %ld\nfull original path: %s\noriginal filename: %s\ntime: %ld\ntmp: %d\nsize: %ld\nnew trashed filename: %s\n"
+					, tli_m.ts_log_id
+					, tli_m.ts_log_originalpath
+					, tli_m.ts_log_filename
+					, tli_m.ts_log_trashtime
+					, tli_m.ts_log_tmp
+					, tli_m.ts_log_filesize
+					, dp.new_trashfile_filename
+					);
 	
 	}
 
