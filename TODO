@@ -1,5 +1,5 @@
-1. Handle case where there is no file and it makes an ID of 2
-2. Add ID to the trashed files as well because duplicate names happen. Also add entry to logfile where the trashed file's id is included in the filename
+1. 
+2. 
 3. Implement function to read log files? And maybe act upon the read contents? I'll have to think more about this.
 4. 
 5. Clean up some code, remove redundancy and make everything a little smarter where i can

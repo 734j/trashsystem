@@ -122,6 +122,15 @@ struct initial_path_info *fill_ipi() { // Function for filling out initial_path_
 	char *ts_log_withslash = "/log/";	
    	char *ts_trashed_withslash = "/trashed/";
 	char *homepath;
+
+	char *ts_tmp = "/tmp";
+	char *ts_tmp_toplevel = "/tmp/.trashsys";
+	char *ts_tmp_log = "/tmp/.trashsys/log";
+	char *ts_tmp_trashed = "/tmp/.trashsys/trashed";
+   	char *ts_tmp_withslash = "/tmp/";
+	char *ts_tmp_toplevel_withslash = "/tmp/.trashsys/";
+	char *ts_tmp_log = "/tmp/.trashsys/log/";
+	char *ts_tmp_trashed = "/tmp/.trashsys/trashed/"
 	struct initial_path_info *ipi = malloc(sizeof(struct initial_path_info)); // malloc memory to struct
 	
 	ipi->ts_path_user_home[0] = '\0'; // Add null character to all of them because we'll be using concat_str (basically strcat) later
