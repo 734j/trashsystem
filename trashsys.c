@@ -251,7 +251,7 @@ int check_create_ts_dirs(struct initial_path_info *ipi) { // 1. Check if trashsy
 uint64_t find_highest_id (struct initial_path_info *ipi) { // Find highest id and then return it, because we will create the new log entry as highestID + 1
 
 	// We need to check whether a file is a directory or just a file. 
-	uint64_t id = 1;
+	uint64_t id = 0;
 	struct dirent *ddd;
 	DIR *dir = opendir(ipi->ts_path_log);
 	if (dir == NULL) {
