@@ -112,7 +112,7 @@ void free_ipi(struct initial_path_info *ipi) { // Free all info in initial_path_
 	cvm_fprintf(v_cvm_fprintf, stderr, "initial_path_info free'd\n");
 }
 
-struct initial_path_info *fill_ipi() { // Function for filling out initial_path_info so it can be used later
+struct initial_path_info *fill_ipi(bool t_used) { // Function for filling out initial_path_info so it can be used later
 
 	#define MY_PATH_MAX PATH_MAX
 	char *ts_toplevel = "/.trashsys";
@@ -129,8 +129,8 @@ struct initial_path_info *fill_ipi() { // Function for filling out initial_path_
 	char *ts_tmp_trashed = "/tmp/.trashsys/trashed";
    	char *ts_tmp_withslash = "/tmp/";
 	char *ts_tmp_toplevel_withslash = "/tmp/.trashsys/";
-	char *ts_tmp_log = "/tmp/.trashsys/log/";
-	char *ts_tmp_trashed = "/tmp/.trashsys/trashed/"
+	char *ts_tmp_log_withslash = "/tmp/.trashsys/log/";
+	char *ts_tmp_trashed_withslash = "/tmp/.trashsys/trashed/";
 	struct initial_path_info *ipi = malloc(sizeof(struct initial_path_info)); // malloc memory to struct
 	
 	ipi->ts_path_user_home[0] = '\0'; // Add null character to all of them because we'll be using concat_str (basically strcat) later
@@ -141,87 +141,105 @@ struct initial_path_info *fill_ipi() { // Function for filling out initial_path_
 	ipi->ts_path_trashsys_withslash[0] = '\0';
 	ipi->ts_path_log_withslash[0] = '\0';
 	ipi->ts_path_trashed_withslash[0] = '\0';
+
+	if (t_used == false) {
+		homepath = getenv(ENVVAR_HOME); // Get the home path of the current user
+
+		if (homepath == NULL) {
+			fprintf(stderr, "fill_ipi(): getenv failed");
+			free_ipi(ipi);
+			exit(EXIT_FAILURE);
+		}
+		ssize_t remaining_size = MY_PATH_MAX;
+		ssize_t remaining_size_2 = MY_PATH_MAX;
+		// /home/john
+		// /home/john/
+		if(concat_str(ipi->ts_path_user_home, MY_PATH_MAX, homepath) == NULL
+		   || concat_str(ipi->ts_path_user_home_withslash, MY_PATH_MAX, homepath) == NULL) {
+			fprintf(stderr, "fill_ipi: path is too long\n");
+			free_ipi(ipi);
+			exit(EXIT_FAILURE);
+		}
+		remaining_size = remaining_size - strlen("/");
+		if(concat_str(ipi->ts_path_user_home_withslash, remaining_size, "/") == NULL) {
+			fprintf(stderr, "fill_ipi: path is too long\n");
+			free_ipi(ipi);
+			exit(EXIT_FAILURE);
+		}
+
+		// /home/john/.trashsys
+		// /home/john/.trashsys/
+		if(concat_str(ipi->ts_path_trashsys, MY_PATH_MAX, homepath) == NULL
+		   || concat_str(ipi->ts_path_trashsys_withslash, MY_PATH_MAX, homepath) == NULL) { 
+			fprintf(stderr, "fill_ipi: path is too long\n");
+			free_ipi(ipi);
+			exit(EXIT_FAILURE);
+		}
+		remaining_size = MY_PATH_MAX;
+		remaining_size = remaining_size - strlen(ts_toplevel);
+		remaining_size_2 = remaining_size_2 - strlen(ts_toplevel_withslash);
+		if(concat_str(ipi->ts_path_trashsys, remaining_size, ts_toplevel) == NULL 
+		   || concat_str(ipi->ts_path_trashsys_withslash, remaining_size_2, ts_toplevel_withslash) == NULL) {
+			fprintf(stderr, "fill_ipi: path is too long\n");
+			free_ipi(ipi);
+			exit(EXIT_FAILURE);
+		}
+
+		// /home/john/.trashsys/log
+		// /home/john/.trashsys/log/
+		if(concat_str(ipi->ts_path_log, MY_PATH_MAX, ipi->ts_path_trashsys) == NULL
+		   || concat_str(ipi->ts_path_log_withslash, MY_PATH_MAX, ipi->ts_path_trashsys) == NULL) {
+			fprintf(stderr, "fill_ipi: path is too long\n");
+			free_ipi(ipi);
+			exit(EXIT_FAILURE);
+		}
+		remaining_size = MY_PATH_MAX;
+		remaining_size_2 = MY_PATH_MAX;
+		remaining_size = remaining_size - strlen(ts_log);
+		remaining_size_2 = remaining_size_2 - strlen(ts_log_withslash);
+		if(concat_str(ipi->ts_path_log, remaining_size, ts_log) == NULL
+		   || concat_str(ipi->ts_path_log_withslash, remaining_size_2, ts_log_withslash) == NULL) {
+			fprintf(stderr, "fill_ipi: path is too long\n");
+			free_ipi(ipi);
+			exit(EXIT_FAILURE);
+		}
+
+		// /home/john/.trashsys/trashed
+		// /home/john/.trashsys/trashed/
+		if(concat_str(ipi->ts_path_trashed, MY_PATH_MAX, ipi->ts_path_trashsys) == NULL
+		   || concat_str(ipi->ts_path_trashed_withslash, MY_PATH_MAX, ipi->ts_path_trashsys) == NULL) {
+			fprintf(stderr, "fill_ipi: path is too long\n");
+			free_ipi(ipi);
+			exit(EXIT_FAILURE);
+		}
+		remaining_size = MY_PATH_MAX;
+		remaining_size_2 = MY_PATH_MAX;
+		remaining_size = remaining_size - strlen(ts_trashed);
+		remaining_size_2 = remaining_size_2 - strlen(ts_trashed_withslash);
+		if(concat_str(ipi->ts_path_trashed, remaining_size, ts_trashed) == NULL
+		   || concat_str(ipi->ts_path_trashed_withslash, remaining_size_2, ts_trashed_withslash) == NULL) {
+			fprintf(stderr, "fill_ipi: path is too long\n");
+			free_ipi(ipi);
+			exit(EXIT_FAILURE);
+		}
 	
-	homepath = getenv(ENVVAR_HOME); // Get the home path of the current user
+	} else if (t_used == true) {
+		if(concat_str(ipi->ts_path_user_home, PATH_MAX, ts_tmp) == NULL ||
+		   concat_str(ipi->ts_path_trashsys, PATH_MAX, ts_tmp_toplevel) == NULL ||
+		   concat_str(ipi->ts_path_log, PATH_MAX, ts_tmp_log) == NULL ||
+		   concat_str(ipi->ts_path_trashed, PATH_MAX, ts_tmp_trashed) == NULL ||
+		   concat_str(ipi->ts_path_user_home_withslash, PATH_MAX, ts_tmp_withslash) == NULL ||
+		   concat_str(ipi->ts_path_trashsys_withslash, PATH_MAX, ts_tmp_toplevel_withslash) == NULL ||
+		   concat_str(ipi->ts_path_log_withslash, PATH_MAX, ts_tmp_log_withslash) == NULL ||
+		   concat_str(ipi->ts_path_trashed_withslash, PATH_MAX, ts_tmp_trashed_withslash) == NULL
+		   ) {
+			fprintf(stderr, "fill_ipi: path is too long\n");
+			free_ipi(ipi);
+			exit(EXIT_FAILURE);
+		}
 
-	if (homepath == NULL) {
-		fprintf(stderr, "fill_ipi(): getenv failed");
-		free_ipi(ipi);
-		exit(EXIT_FAILURE);
+		
 	}
-   	ssize_t remaining_size = MY_PATH_MAX;
-	ssize_t remaining_size_2 = MY_PATH_MAX;
-	// /home/john
-	// /home/john/
-   	if(concat_str(ipi->ts_path_user_home, MY_PATH_MAX, homepath) == NULL
-	   || concat_str(ipi->ts_path_user_home_withslash, MY_PATH_MAX, homepath) == NULL) {
-		fprintf(stderr, "fill_ipi: path is too long\n");
-		free_ipi(ipi);
-		exit(EXIT_FAILURE);
-	}
-	remaining_size = remaining_size - strlen("/");
-	if(concat_str(ipi->ts_path_user_home_withslash, remaining_size, "/") == NULL) {
-		fprintf(stderr, "fill_ipi: path is too long\n");
-		free_ipi(ipi);
-		exit(EXIT_FAILURE);
-	}
-
-	// /home/john/.trashsys
-	// /home/john/.trashsys/
-	if(concat_str(ipi->ts_path_trashsys, MY_PATH_MAX, homepath) == NULL
-	   || concat_str(ipi->ts_path_trashsys_withslash, MY_PATH_MAX, homepath) == NULL) { 
-		fprintf(stderr, "fill_ipi: path is too long\n");
-		free_ipi(ipi);
-		exit(EXIT_FAILURE);
-	}
-	remaining_size = MY_PATH_MAX;
-	remaining_size = remaining_size - strlen(ts_toplevel);
-	remaining_size_2 = remaining_size_2 - strlen(ts_toplevel_withslash);
-	if(concat_str(ipi->ts_path_trashsys, remaining_size, ts_toplevel) == NULL 
-	   || concat_str(ipi->ts_path_trashsys_withslash, remaining_size_2, ts_toplevel_withslash) == NULL) {
-		fprintf(stderr, "fill_ipi: path is too long\n");
-		free_ipi(ipi);
-		exit(EXIT_FAILURE);
-	}
-
-	// /home/john/.trashsys/log
-	// /home/john/.trashsys/log/
-	if(concat_str(ipi->ts_path_log, MY_PATH_MAX, ipi->ts_path_trashsys) == NULL
-	   || concat_str(ipi->ts_path_log_withslash, MY_PATH_MAX, ipi->ts_path_trashsys) == NULL) {
-		fprintf(stderr, "fill_ipi: path is too long\n");
-		free_ipi(ipi);
-		exit(EXIT_FAILURE);
-	}
-	remaining_size = MY_PATH_MAX;
-	remaining_size_2 = MY_PATH_MAX;
-	remaining_size = remaining_size - strlen(ts_log);
-	remaining_size_2 = remaining_size_2 - strlen(ts_log_withslash);
-	if(concat_str(ipi->ts_path_log, remaining_size, ts_log) == NULL
-	   || concat_str(ipi->ts_path_log_withslash, remaining_size_2, ts_log_withslash) == NULL) {
-		fprintf(stderr, "fill_ipi: path is too long\n");
-		free_ipi(ipi);
-		exit(EXIT_FAILURE);
-	}
-
-	// /home/john/.trashsys/trashed
-	// /home/john/.trashsys/trashed/
-	if(concat_str(ipi->ts_path_trashed, MY_PATH_MAX, ipi->ts_path_trashsys) == NULL
-	   || concat_str(ipi->ts_path_trashed_withslash, MY_PATH_MAX, ipi->ts_path_trashsys) == NULL) {
-		fprintf(stderr, "fill_ipi: path is too long\n");
-		free_ipi(ipi);
-		exit(EXIT_FAILURE);
-	}
-	remaining_size = MY_PATH_MAX;
-	remaining_size_2 = MY_PATH_MAX;
-	remaining_size = remaining_size - strlen(ts_trashed);
-	remaining_size_2 = remaining_size_2 - strlen(ts_trashed_withslash);
-	if(concat_str(ipi->ts_path_trashed, remaining_size, ts_trashed) == NULL
-	   || concat_str(ipi->ts_path_trashed_withslash, remaining_size_2, ts_trashed_withslash) == NULL) {
-		fprintf(stderr, "fill_ipi: path is too long\n");
-		free_ipi(ipi);
-		exit(EXIT_FAILURE);
-	}
-
 	cvm_fprintf(v_cvm_fprintf, stdout, "%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n"
 				, ipi->ts_path_user_home
 				, ipi->ts_path_trashsys
@@ -560,7 +578,7 @@ int main (int argc, char *argv[]) {
 	struct initial_path_info *ipi_m; // _m because i just want to keep in mind that we're in main which is a bit easier for me
 	int cctd;
 
-	ipi_m = fill_ipi(); // Fill out ipi struct
+	ipi_m = fill_ipi(t_used); // Fill out ipi struct
 	cctd = check_create_ts_dirs(ipi_m); // check for or create directories
 	if(cctd == FUNCTION_FAIL) {
 		fprintf(stderr, "check_create_ts_dirs(): Cannot create directories\n");
