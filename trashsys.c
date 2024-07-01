@@ -22,13 +22,12 @@
 #define NOFILE 3
 #define FUNCTION_FAILURE -1
 #define FUNCTION_SUCCESS 0
-#define FUNCTION_FAILURE_U 1
 
 bool v_cvm_fprintf = false;
 int choice_mode = MODE_NORMAL;
 
 struct trashsys_log_info {
-	uint64_t ts_log_id;
+	int64_t ts_log_id;
 	char ts_log_filename[FILENAME_MAX];
 	size_t ts_log_filesize;
 	time_t ts_log_trashtime;
@@ -260,14 +259,14 @@ int check_create_ts_dirs(struct initial_path_info *ipi) { // 1. Check if trashsy
 	return 0;
 }
  
-uint64_t find_highest_id (struct initial_path_info *ipi) { // Find highest id and then return it, because we will create the new log entry as highestID + 1
+int64_t find_highest_id (struct initial_path_info *ipi) { // Find highest id and then return it, because we will create the new log entry as highestID + 1
 
 	// We need to check whether a file is a directory or just a file. 
-	uint64_t id = 0;
+	int64_t id = 0;
 	struct dirent *ddd;
 	DIR *dir = opendir(ipi->ts_path_log);
 	if (dir == NULL) {
-		return FUNCTION_FAILURE_U;
+		return FUNCTION_FAILURE;
 	}
 	while ((ddd = readdir(dir)) != NULL) {
 		
@@ -278,13 +277,13 @@ uint64_t find_highest_id (struct initial_path_info *ipi) { // Find highest id an
 		ssize_t remaining_size = PATH_MAX;
 		if(concat_str(stat_fullpath, PATH_MAX, ipi->ts_path_log_withslash) == NULL) {
 			fprintf(stderr, "Path is too long\n"); // rare case but at least its handled
-			return FUNCTION_FAILURE_U;
+			return FUNCTION_FAILURE;
 		}
 
 		remaining_size = remaining_size - strlen(stat_fullpath);
 		if(concat_str(stat_fullpath, remaining_size, ddd->d_name) == NULL) {
 			fprintf(stderr, "Path is too long\n"); // rare case but at least its handled
-			return FUNCTION_FAILURE_U;
+			return FUNCTION_FAILURE;
 		}
 		
 		struct stat d_or_f;
@@ -293,7 +292,7 @@ uint64_t find_highest_id (struct initial_path_info *ipi) { // Find highest id an
 		if(S_ISREG(d_or_f.st_mode)) { // check if given file is actually a file
 			cvm_fprintf(v_cvm_fprintf, stdout, "is regular file: %s\nstat_fullpath: %s\n", ddd->d_name, stat_fullpath);
 			char *endptr;
-			uint64_t strtoull_ID = strtoull(ddd->d_name, &endptr, 10);
+			int64_t strtoll_ID = strtoull(ddd->d_name, &endptr, 10);
 			if(ddd->d_name == endptr) {
 				cvm_fprintf(v_cvm_fprintf, stdout, "d_name == endptr | d_name: %p | endptr: %p | d_name string: %s\n", ddd->d_name, endptr, ddd->d_name);
 				continue;
@@ -302,8 +301,8 @@ uint64_t find_highest_id (struct initial_path_info *ipi) { // Find highest id an
 				cvm_fprintf(v_cvm_fprintf, stdout, "':' not found for file: %s\n", ddd->d_name);
 				continue;
 			}
-			if(strtoull_ID > id) { // If id is bigger then update it
-				id = strtoull_ID;
+			if(strtoll_ID > id) { // If id is bigger then update it
+				id = strtoll_ID;
 				cvm_fprintf(v_cvm_fprintf, stdout, "found higher ID: %d\n", id);
 			}
 		}
@@ -344,8 +343,8 @@ int tli_fill_info (struct trashsys_log_info *tli, char* filename, bool log_tmp, 
 	fclose(file);
 	tli->ts_log_filesize = (size_t)filesize;
 
-	uint64_t ID = find_highest_id(ipi);
-	if (ID == FUNCTION_FAILURE_U) {
+	int64_t ID = find_highest_id(ipi);
+	if (ID == FUNCTION_FAILURE) {
 		return FUNCTION_FAILURE;
 	}
 	tli->ts_log_id = ID + 1; // +1 because if we are making a new file we need to give it one above highest ID.
