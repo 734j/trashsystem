@@ -223,7 +223,7 @@ struct initial_path_info *fill_ipi(bool t_used) { // Function for filling out in
 			exit(EXIT_FAILURE);
 		}
 	
-	} else if (t_used == true) {
+	} else if (t_used == true) { // If -t flag is specified we fill ipi with /tmp paths instead
 		if(concat_str(ipi->ts_path_user_home, PATH_MAX, ts_tmp) == NULL ||
 		   concat_str(ipi->ts_path_trashsys, PATH_MAX, ts_tmp_toplevel) == NULL ||
 		   concat_str(ipi->ts_path_log, PATH_MAX, ts_tmp_log) == NULL ||
