@@ -68,7 +68,6 @@ int handle_ynf(bool y_used, bool n_used, bool f_used) { // Will handle cases for
    	if (y_used == true) { choice_mode_ynf = MODE_YES; }
 	if (f_used == true) { choice_mode_ynf = MODE_FORCE; }
 	
-	
 	return choice_mode_ynf;
 }
 
@@ -87,13 +86,11 @@ int cvm_fprintf(bool ONOROFF, FILE *stream, const char *format, ...) {
     return result; // Return the result from fprintf
 }
 
-// final(100) from(10)
-// 100 > 10 = PASS
-//  
-// final(100) 0/100
-// remsz = 100 - strlen(final)(0)
-// remsz = 100
-// remsz100 = from1
+// from(25)
+// final(100) 10/100
+// remsz = 100 - strlen(final)
+// remsz = 90
+// 90 > 25+1
 // this means REM_SZ(PATH_MAX, final)
 char *concat_str(char *final, ssize_t rem_size, const char *from) {
 	// IF you use this function PLEASE know this:
@@ -243,17 +240,17 @@ int check_create_ts_dirs(struct initial_path_info *ipi) { // 1. Check if trashsy
   	mkd = mkdir(ipi->ts_path_trashsys, 0755);
 	if (mkd < 0) {
 		if (errno == EEXIST) { cvm_fprintf(v_cvm_fprintf, stdout, ".trashsys exists\n"); } else { return -1; }
-	} else { cvm_fprintf(v_cvm_fprintf, stderr, "%s was created\n", ipi->ts_path_trashsys); }
+	} else { cvm_fprintf(v_cvm_fprintf, stdout, "%s was created\n", ipi->ts_path_trashsys); }
 	
 	mkd = mkdir(ipi->ts_path_log, 0755);
 	if (mkd < 0) {
 		if (errno == EEXIST) { cvm_fprintf(v_cvm_fprintf, stdout, "log exists\n"); } else { return -1; }
-	} else { cvm_fprintf(v_cvm_fprintf, stderr, "%s was created\n", ipi->ts_path_log); }
+	} else { cvm_fprintf(v_cvm_fprintf, stdout, "%s was created\n", ipi->ts_path_log); }
 	
 	mkd = mkdir(ipi->ts_path_trashed, 0755);
 	if (mkd < 0) {
 		if (errno == EEXIST) { cvm_fprintf(v_cvm_fprintf, stdout, "trashed exists\n"); } else { return -1; }
-	} else { cvm_fprintf(v_cvm_fprintf, stderr, "%s was created\n", ipi->ts_path_trashed); }
+	} else { cvm_fprintf(v_cvm_fprintf, stdout, "%s was created\n", ipi->ts_path_trashed); }
     
 	return 0;
 }
