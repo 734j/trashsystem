@@ -1,4 +1,4 @@
-1. Change fill_ipi and instead of having it malloc and then return return it to have the pointer in main point to the malloc'd struct we might as well just pass the address directly to the function and fill it from there. Why even bother malloc'ing? If we remove malloc we can remove a lot of free() calls and remove a lot of complexity from the code. I mean we aren't even doing a damn linked list so why the hell would we even need to malloc a struct? Am i stupid? 
+1.  
 2. Just a note: When implementing the -L -l functions we need to make it clear what's in tmp and whats not. Not sure exactly how ill do this but i have some ideas. One way of dealing with files in tmp is to force the user to pass the -t argument if they want to deal with tmp stuff. Like if i say: 'tsr -t -l' it will only list files in the tmp trashcan. Maybe that IS the best approach to this?
 3. Implement function to read log files? And maybe act upon the read contents? I'll have to think more about this.
 4. 
