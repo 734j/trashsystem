@@ -72,19 +72,18 @@ int handle_ynf(bool y_used, bool n_used, bool f_used) { // Will handle cases for
 }
 
 int cvm_fprintf(bool ONOROFF, FILE *stream, const char *format, ...) {
-    // a sort of debug fprintf
+    
     if (ONOROFF == false) {
-        return 0; // Return 0 to indicate no characters were printed
+        return FUNCTION_SUCCESS; 
     }
 
-    // If condition is true, proceed with fprintf
     va_list args;
     va_start(args, format);
     int result = vfprintf(stream, format, args);
     va_end(args);
 
-    return result; // Return the result from fprintf
-}
+    return result;
+} 
 
 // from(25)
 // final(100) 10/100
@@ -239,20 +238,20 @@ int check_create_ts_dirs(struct initial_path_info *ipi) { // 1. Check if trashsy
 	int mkd;
   	mkd = mkdir(ipi->ts_path_trashsys, 0755);
 	if (mkd < 0) {
-		if (errno == EEXIST) { cvm_fprintf(v_cvm_fprintf, stdout, ".trashsys exists\n"); } else { return -1; }
+		if (errno == EEXIST) { cvm_fprintf(v_cvm_fprintf, stdout, ".trashsys exists\n"); } else { return FUNCTION_FAILURE; }
 	} else { cvm_fprintf(v_cvm_fprintf, stdout, "%s was created\n", ipi->ts_path_trashsys); }
 	
 	mkd = mkdir(ipi->ts_path_log, 0755);
 	if (mkd < 0) {
-		if (errno == EEXIST) { cvm_fprintf(v_cvm_fprintf, stdout, "log exists\n"); } else { return -1; }
+		if (errno == EEXIST) { cvm_fprintf(v_cvm_fprintf, stdout, "log exists\n"); } else { return FUNCTION_FAILURE; }
 	} else { cvm_fprintf(v_cvm_fprintf, stdout, "%s was created\n", ipi->ts_path_log); }
 	
 	mkd = mkdir(ipi->ts_path_trashed, 0755);
 	if (mkd < 0) {
-		if (errno == EEXIST) { cvm_fprintf(v_cvm_fprintf, stdout, "trashed exists\n"); } else { return -1; }
+		if (errno == EEXIST) { cvm_fprintf(v_cvm_fprintf, stdout, "trashed exists\n"); } else { return FUNCTION_FAILURE; }
 	} else { cvm_fprintf(v_cvm_fprintf, stdout, "%s was created\n", ipi->ts_path_trashed); }
     
-	return 0;
+	return FUNCTION_SUCCESS;
 }
  
 int64_t find_highest_id (struct initial_path_info *ipi) { // Find highest id and then return it, because we will create the new log entry as highestID + 1
@@ -343,7 +342,7 @@ int tli_fill_info (struct trashsys_log_info *tli, char* filename, bool log_tmp, 
 	}
 	tli->ts_log_id = ID + 1; // +1 because if we are making a new file we need to give it one above highest ID.
 	
-	return 0;
+	return FUNCTION_SUCCESS;
 }
 
 int fill_dynamic_paths (struct initial_path_info *ipi, struct trashsys_log_info *tli, struct dynamic_paths *dp) {
@@ -353,25 +352,25 @@ int fill_dynamic_paths (struct initial_path_info *ipi, struct trashsys_log_info 
 	dp->new_logfile_path_incl_name[0] = '\0';
 	dp->new_trashfile_filename[0] = '\0';
 	// /path/to/my/file.txt
-	if(concat_str(dp->old_trashfile_path, PATH_MAX, tli->ts_log_originalpath) == NULL) { return -1; }
+	if(concat_str(dp->old_trashfile_path, PATH_MAX, tli->ts_log_originalpath) == NULL) { return FUNCTION_FAILURE; }
 
 	// filename ID eg. '35:'
 	char idstr[23];
 	snprintf(idstr, 23, "%ld:", tli->ts_log_id);
 	
 	// /home/john/.trashsys/trashed/35:file.txt
-	if(concat_str(dp->new_trashfile_path, PATH_MAX, ipi->ts_path_trashed_withslash) == NULL) { return -1; }
-	if(concat_str(dp->new_trashfile_path, REM_SZ(PATH_MAX, dp->new_trashfile_path), idstr) == NULL) { return -1; }
-	if(concat_str(dp->new_trashfile_path, REM_SZ(PATH_MAX, dp->new_trashfile_path), tli->ts_log_filename) == NULL) { return -1; }
+	if(concat_str(dp->new_trashfile_path, PATH_MAX, ipi->ts_path_trashed_withslash) == NULL) { return FUNCTION_FAILURE; }
+	if(concat_str(dp->new_trashfile_path, REM_SZ(PATH_MAX, dp->new_trashfile_path), idstr) == NULL) { return FUNCTION_FAILURE; }
+	if(concat_str(dp->new_trashfile_path, REM_SZ(PATH_MAX, dp->new_trashfile_path), tli->ts_log_filename) == NULL) { return FUNCTION_FAILURE; }
 	
 	// /home/john/.trashsys/log/35:file.txt.log
-	if(concat_str(dp->new_logfile_path_incl_name, PATH_MAX, ipi->ts_path_log_withslash) == NULL) { return -1; }
-   	if(concat_str(dp->new_logfile_path_incl_name, REM_SZ(PATH_MAX, dp->new_logfile_path_incl_name), idstr) == NULL) { return -1; }
-   	if(concat_str(dp->new_logfile_path_incl_name, REM_SZ(PATH_MAX, dp->new_logfile_path_incl_name), tli->ts_log_filename) == NULL) { return -1; }
-   	if(concat_str(dp->new_logfile_path_incl_name, REM_SZ(PATH_MAX, dp->new_logfile_path_incl_name), ".log") == NULL) { return -1; }
+	if(concat_str(dp->new_logfile_path_incl_name, PATH_MAX, ipi->ts_path_log_withslash) == NULL) { return FUNCTION_FAILURE; }
+   	if(concat_str(dp->new_logfile_path_incl_name, REM_SZ(PATH_MAX, dp->new_logfile_path_incl_name), idstr) == NULL) { return FUNCTION_FAILURE; }
+   	if(concat_str(dp->new_logfile_path_incl_name, REM_SZ(PATH_MAX, dp->new_logfile_path_incl_name), tli->ts_log_filename) == NULL) { return FUNCTION_FAILURE; }
+   	if(concat_str(dp->new_logfile_path_incl_name, REM_SZ(PATH_MAX, dp->new_logfile_path_incl_name), ".log") == NULL) { return FUNCTION_FAILURE; }
 	
 	// 35:file.txt
-	if(concat_str(dp->new_trashfile_filename, PATH_MAX, basename(dp->new_trashfile_path)) == NULL) { return -1; }
+	if(concat_str(dp->new_trashfile_filename, PATH_MAX, basename(dp->new_trashfile_path)) == NULL) { return FUNCTION_FAILURE; }
     
 	cvm_fprintf(v_cvm_fprintf, stdout, "%s\n%s\n%s\n%s\n"
 			    , dp->old_trashfile_path
@@ -379,7 +378,8 @@ int fill_dynamic_paths (struct initial_path_info *ipi, struct trashsys_log_info 
 				, dp->new_trashfile_filename
 				, dp->new_logfile_path_incl_name
 				);
-	return 0;
+	
+	return FUNCTION_SUCCESS;
 }
 
 int write_log_file(struct dynamic_paths *dp, struct trashsys_log_info *tli, bool t_used_aka_tmp) {
@@ -409,7 +409,7 @@ int write_log_file(struct dynamic_paths *dp, struct trashsys_log_info *tli, bool
 	
 	fclose(file);
 
-	return 0;
+	return FUNCTION_SUCCESS;
 }
 
 int choice(int mode) {
@@ -445,7 +445,7 @@ int choice(int mode) {
         return 1;
     }
 
-    return EXIT_FAILURE;
+    return FUNCTION_FAILURE; // Should never happen
 }
 
 int main (int argc, char *argv[]) {
@@ -581,5 +581,5 @@ int main (int argc, char *argv[]) {
 	
 	}
 	
-	return 0;
+	return EXIT_SUCCESS;
 }

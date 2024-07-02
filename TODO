@@ -1,4 +1,4 @@
-1. FIX FUNCTION_FAILURE_U because it returns 1 when failing but what do we do in the case of no files at all? It will return ID as 0 and then the program just exits.  
+1. Implement -l and -L  
 2. Just a note: When implementing the -L -l functions we need to make it clear what's in tmp and whats not. Not sure exactly how ill do this but i have some ideas. One way of dealing with files in tmp is to force the user to pass the -t argument if they want to deal with tmp stuff. Like if i say: 'tsr -t -l' it will only list files in the tmp trashcan. Maybe that IS the best approach to this?
 3. Implement function to read log files? And maybe act upon the read contents? I'll have to think more about this.
 4. Handle case where we pass a bunch of options but no filename
