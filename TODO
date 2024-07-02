@@ -1,4 +1,4 @@
-1. Implement -l and -L  
+1. Implement -l and -L. Maybe redo the function. Its not working as well as i thought. Maybe not use get line.  
 2. Just a note: When implementing the -L -l functions we need to make it clear what's in tmp and whats not. Not sure exactly how ill do this but i have some ideas. One way of dealing with files in tmp is to force the user to pass the -t argument if they want to deal with tmp stuff. Like if i say: 'tsr -t -l' it will only list files in the tmp trashcan. Maybe that IS the best approach to this?
 3. Implement function to read log files? And maybe act upon the read contents? I'll have to think more about this.
 4. Handle case where we pass a bunch of options but no filename

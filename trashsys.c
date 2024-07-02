@@ -36,6 +36,16 @@ struct trashsys_log_info {
 	bool ts_log_tmp;
 };
 
+struct list_file_content {
+  char ID[PATH_MAX];
+  char filename[PATH_MAX];
+  char trashed_filename[PATH_MAX];
+  char filesize[PATH_MAX];
+  char time[PATH_MAX];
+  char originalpath[PATH_MAX];
+  char tmp[PATH_MAX];
+  };
+
 struct dynamic_paths {
 	char old_trashfile_path[PATH_MAX];
 	char new_trashfile_path[PATH_MAX];
@@ -69,6 +79,99 @@ int handle_ynf(bool y_used, bool n_used, bool f_used) { // Will handle cases for
 	if (f_used == true) { choice_mode_ynf = MODE_FORCE; }
 	
 	return choice_mode_ynf;
+}
+
+int get_line(char *filename, long focus, char **line, size_t *start) { // taken from 7Editor and modified slightly
+    
+    FILE *file;
+    file = fopen(filename,"r"); // Open file
+
+    if (file == NULL) { // Check if you can open file
+        fprintf(stderr, "Cannot open file get_line.\n");
+        return FUNCTION_FAILURE;
+    }
+    
+    if (focus == 1) {
+        int c1_count = 0;
+        while (1) {
+            char c = fgetc(file);
+            if (c == '\n') {
+                c1_count++;
+                break;
+            } else if (c == EOF) {
+                break;
+            } else {
+                c1_count++;
+            }
+        }                       // checks how many characters are in the first line
+        char c1buf[c1_count+1];
+        fseek(file, 0, SEEK_SET);
+        
+        int i = 0;
+
+        for (; i < c1_count ; i++) {
+            c1buf[i] = fgetc(file);
+        }
+        c1buf[i] = '\0';
+        *line = (char *)malloc(strlen(c1buf) + 1);
+
+        if (*line != NULL) {
+            strcpy(*line, c1buf); // Return line 1
+        }
+		
+        *start = 0; // Is start the start of where line
+
+    } else {
+
+        focus--;
+        size_t line_count = 0; // Counter starting at 0
+        size_t save_i = 0;
+        for (size_t i = 0; ; i++) {
+            char c = fgetc(file);
+            if (feof(file)) { // If end of file is encountered then break
+                break; 
+            }
+            if (c == '\n') {
+                line_count++;
+                if (line_count == (size_t)focus) {
+                    save_i = i;
+                    break;
+                }
+            }
+        }
+        fseek(file, save_i+1, SEEK_SET);
+        
+        int c2_count = 0;
+        while (1) {
+            char c = fgetc(file);
+            if (c == '\n') {
+                c2_count++;
+                break;
+            } else if (c == EOF) {
+                break;
+            } else {
+                c2_count++;
+            }
+        }
+        
+        fseek(file, save_i+1, SEEK_SET);
+        char c2buf[c2_count+1];
+        int i = 0;
+        for (; i < c2_count ; i++) {
+            c2buf[i] = fgetc(file);
+        }
+        c2buf[i] = '\0';
+        *line = (char *)malloc(strlen(c2buf) + 1);
+
+        if (*line != NULL) {
+            strcpy(*line, c2buf);
+        }
+        *start = save_i+1; // not sure but i think it saves the start position of the line
+        
+    }
+    
+    fclose(file);
+    return FUNCTION_SUCCESS;
 }
 
 int cvm_fprintf(bool ONOROFF, FILE *stream, const char *format, ...) {
@@ -274,7 +377,7 @@ int64_t find_highest_id (struct initial_path_info *ipi) { // Find highest id and
 			return FUNCTION_FAILURE;
 		}
 
-		if(concat_str(stat_fullpath, REM_SZ(PATH_MAX, ddd->d_name), ddd->d_name) == NULL) {
+		if(concat_str(stat_fullpath, REM_SZ(PATH_MAX, stat_fullpath), ddd->d_name) == NULL) {
 			fprintf(stderr, "Path is too long\n"); // rare case but at least its handled
 			return FUNCTION_FAILURE;
 		}
@@ -398,7 +501,7 @@ int write_log_file(struct dynamic_paths *dp, struct trashsys_log_info *tli, bool
 	}
 
 	/*this fprintf is what WRITES in to the logfile*/
-	fprintf(file, ";\n%ld\n%s\n%s\n%ld\n%ld\n%s\n%d\n;\n"
+	fprintf(file, "%ld\n%s\n%s\n%ld\n%ld\n%s\n%d\n"
 			, tli->ts_log_id
 			, tli->ts_log_filename
 			, dp->new_trashfile_filename
@@ -412,6 +515,96 @@ int write_log_file(struct dynamic_paths *dp, struct trashsys_log_info *tli, bool
 	return FUNCTION_SUCCESS;
 }
 
+
+/*
+  struct list_file_content {
+  char ID[128];
+  char filename[FILENAME_MAX];
+  char trashed_filename[FILENAME_MAX];
+  char filesize[128];
+  char time[128];
+  char originalpath[PATH_MAX];
+  char tmp[2];
+  };
+*/
+			
+int list_files (struct initial_path_info *ipi, bool t_used, bool L_used) {
+
+	// ID: 11 | ts_file3.txt | 1 MiB | trashed at: 2024-07-02	
+	// ID: 11 | ts_file3.txt | 1 MiB | 1112731 bytes | trashed at 2024-07-02 (17287368) | originalpath: /home/oskar/code/ts_file3.txt
+
+	struct dirent *ddd;
+	DIR *dir = opendir(ipi->ts_path_log);
+	if (dir == NULL) {
+		return FUNCTION_FAILURE;
+	}
+	
+	while ((ddd = readdir(dir)) != NULL) {
+		
+		// MUST BE TESTED MORE!!!
+		char stat_fullpath[PATH_MAX];
+		stat_fullpath[0] = '\0';
+
+		if(concat_str(stat_fullpath, PATH_MAX, ipi->ts_path_log_withslash) == NULL) {
+			fprintf(stderr, "Path is too long\n"); // rare case but at least its handled
+			return FUNCTION_FAILURE;
+		}
+
+		if(concat_str(stat_fullpath, REM_SZ(PATH_MAX, stat_fullpath), ddd->d_name) == NULL) {
+			fprintf(stderr, "Path is too long\n"); // rare case but at least its handled
+			return FUNCTION_FAILURE;
+		}
+		
+		struct stat d_or_f;
+		stat(stat_fullpath, &d_or_f);
+		
+		if(S_ISREG(d_or_f.st_mode)) { // check if given file is actually a file
+			cvm_fprintf(v_cvm_fprintf, stdout, "is regular file: %s\nstat_fullpath: %s\n", ddd->d_name, stat_fullpath);
+
+			FILE *file = fopen(stat_fullpath, "r");
+			if (file == NULL) {
+				return FUNCTION_FAILURE;
+			}
+			if (t_used == true || L_used == true) {
+				return 0;
+			}
+			struct list_file_content lfc;
+			char *lfc_a[7];
+			lfc.ID[0] = '\0';
+			lfc.filename[0] = '\0';
+			lfc.trashed_filename[0] = '\0';
+			lfc.filesize[0] = '\0';
+			lfc.time[0] = '\0';
+			lfc.originalpath[0] = '\0';
+			lfc.tmp[0] = '\0';
+			lfc_a[0] = lfc.ID;
+			lfc_a[1] = lfc.filename;
+			lfc_a[2] = lfc.trashed_filename;
+			lfc_a[3] = lfc.filesize;
+			lfc_a[4] = lfc.time;
+			lfc_a[5] = lfc.originalpath;
+			lfc_a[6] = lfc.tmp;
+			int i = 0;
+			int linenum = 1;
+			for ( ; i < 7 ; i++, linenum++) {
+				char *line;
+				size_t start;
+				if(get_line(stat_fullpath, linenum, &line, &start) == FUNCTION_FAILURE) { return FUNCTION_FAILURE; }
+				if(concat_str(lfc_a[i], PATH_MAX, line) == NULL) { free(line); return FUNCTION_FAILURE; }
+				free(line);
+			}
+			fclose(file);
+			
+			fprintf(stdout, "%s%s%s%s%s%s%s", lfc.ID, lfc.filename, lfc.trashed_filename, lfc.filesize, lfc.time, lfc.originalpath, lfc.tmp);
+			
+		}
+	
+	}
+	closedir(dir);
+	return FUNCTION_SUCCESS;
+
+}
+	
 int choice(int mode) {
 
     char choice;
@@ -546,6 +739,10 @@ int main (int argc, char *argv[]) {
 		return EXIT_FAILURE;
 	}
 
+	if(l_used == true) {
+		list_files(&ipi_m, t_used, L_used);
+	}
+	
 	int index;
 	for (index = optind ; index < argc ; index++) {
    		struct trashsys_log_info tli_m;
