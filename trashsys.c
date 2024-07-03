@@ -64,7 +64,7 @@ struct initial_path_info { // Initial useful strings to create before we do anyt
 	char ts_path_trashed_withslash[PATH_MAX];
 };
 
-int handle_ynf(bool y_used, bool n_used, bool f_used) { // Will handle cases for y, n and f. Exits if any of these are used together.
+int handle_ynf(const bool y_used, const bool n_used, const bool f_used) { // Will handle cases for y, n and f. Exits if any of these are used together.
 
 	int choice_mode_ynf = MODE_NORMAL;
 
@@ -81,7 +81,7 @@ int handle_ynf(bool y_used, bool n_used, bool f_used) { // Will handle cases for
 	return choice_mode_ynf;
 }
 
-int get_line(char *filename, long focus, char **line, size_t *start) { // taken from 7Editor and modified slightly
+int get_line(const char *filename, long focus, char **line, size_t *start) { // taken from 7Editor and modified slightly
     
     FILE *file;
     file = fopen(filename,"r"); // Open file
@@ -174,7 +174,7 @@ int get_line(char *filename, long focus, char **line, size_t *start) { // taken 
     return FUNCTION_SUCCESS;
 }
 
-int cvm_fprintf(bool ONOROFF, FILE *stream, const char *format, ...) {
+int cvm_fprintf(const bool ONOROFF, FILE *stream, const char *format, ...) {
     
     if (ONOROFF == false) {
         return FUNCTION_SUCCESS; 
@@ -194,7 +194,7 @@ int cvm_fprintf(bool ONOROFF, FILE *stream, const char *format, ...) {
 // remsz = 90
 // 90 > 25+1
 // this means REM_SZ(PATH_MAX, final)
-char *concat_str(char *final, ssize_t rem_size, const char *from) {
+char *concat_str(char *final, const ssize_t rem_size, const char *from) {
 	// IF you use this function PLEASE know this:
 	// rem_size is the amount of characters left in final
 	// rem_size should NOT include \0 in the size
@@ -215,24 +215,24 @@ char *concat_str(char *final, ssize_t rem_size, const char *from) {
 	return final;
 }
 
-int fill_ipi(bool t_used, struct initial_path_info *ipi) { // Function for filling out initial_path_info so it can be used later
+int fill_ipi(const bool t_used, struct initial_path_info *ipi) { // Function for filling out initial_path_info so it can be used later
 
-	char *ts_toplevel = "/.trashsys";
-	char *ts_log = "/log";	
-   	char *ts_trashed = "/trashed";
-   	char *ts_toplevel_withslash = "/.trashsys/";
-	char *ts_log_withslash = "/log/";	
-   	char *ts_trashed_withslash = "/trashed/";
+	const char *ts_toplevel = "/.trashsys";
+	const char *ts_log = "/log";	
+   	const char *ts_trashed = "/trashed";
+   	const char *ts_toplevel_withslash = "/.trashsys/";
+	const char *ts_log_withslash = "/log/";	
+   	const char *ts_trashed_withslash = "/trashed/";
 	char *homepath;
 
-	char *ts_tmp = "/tmp";
-	char *ts_tmp_toplevel = "/tmp/.trashsys";
-	char *ts_tmp_log = "/tmp/.trashsys/log";
-	char *ts_tmp_trashed = "/tmp/.trashsys/trashed";
-   	char *ts_tmp_withslash = "/tmp/";
-	char *ts_tmp_toplevel_withslash = "/tmp/.trashsys/";
-	char *ts_tmp_log_withslash = "/tmp/.trashsys/log/";
-	char *ts_tmp_trashed_withslash = "/tmp/.trashsys/trashed/";
+	const char *ts_tmp = "/tmp";
+	const char *ts_tmp_toplevel = "/tmp/.trashsys";
+	const char *ts_tmp_log = "/tmp/.trashsys/log";
+	const char *ts_tmp_trashed = "/tmp/.trashsys/trashed";
+   	const char *ts_tmp_withslash = "/tmp/";
+	const char *ts_tmp_toplevel_withslash = "/tmp/.trashsys/";
+	const char *ts_tmp_log_withslash = "/tmp/.trashsys/log/";
+	const char *ts_tmp_trashed_withslash = "/tmp/.trashsys/trashed/";
 	
 	ipi->ts_path_user_home[0] = '\0'; // Add null character to all of them because we'll be using concat_str (basically strcat) later
 	ipi->ts_path_trashsys[0] = '\0';
@@ -336,7 +336,7 @@ int fill_ipi(bool t_used, struct initial_path_info *ipi) { // Function for filli
 	return FUNCTION_SUCCESS;
 }
 
-int check_create_ts_dirs(struct initial_path_info *ipi) { // 1. Check if trashsys toplevel exists 2. Check if log exists 3. Check if trashed exists 
+int check_create_ts_dirs(const struct initial_path_info *ipi) { // 1. Check if trashsys toplevel exists 2. Check if log exists 3. Check if trashed exists 
 
 	int mkd;
   	mkd = mkdir(ipi->ts_path_trashsys, 0755);
@@ -357,7 +357,7 @@ int check_create_ts_dirs(struct initial_path_info *ipi) { // 1. Check if trashsy
 	return FUNCTION_SUCCESS;
 }
  
-int64_t find_highest_id (struct initial_path_info *ipi) { // Find highest id and then return it, because we will create the new log entry as highestID + 1
+int64_t find_highest_id (const struct initial_path_info *ipi) { // Find highest id and then return it, because we will create the new log entry as highestID + 1
 
 	// We need to check whether a file is a directory or just a file. 
 	int64_t id = 0;
@@ -408,7 +408,7 @@ int64_t find_highest_id (struct initial_path_info *ipi) { // Find highest id and
 	return id;
 }
 
-int tli_fill_info (struct trashsys_log_info *tli, char* filename, bool log_tmp, struct initial_path_info *ipi) { 
+int tli_fill_info (struct trashsys_log_info *tli, char* filename, const bool log_tmp, struct initial_path_info *ipi) { 
 	// This function will be the main function that gathers and fills out info that will be in the log file for a file a user wants to trash
 	char *rp;
 	time_t curtime;
@@ -485,7 +485,7 @@ int fill_dynamic_paths (struct initial_path_info *ipi, struct trashsys_log_info 
 	return FUNCTION_SUCCESS;
 }
 
-int write_log_file(struct dynamic_paths *dp, struct trashsys_log_info *tli, bool t_used_aka_tmp) {
+int write_log_file(struct dynamic_paths *dp, struct trashsys_log_info *tli, const bool t_used_aka_tmp) {
 
 	char *tmp_path = "/tmp/";
 
@@ -528,7 +528,7 @@ int write_log_file(struct dynamic_paths *dp, struct trashsys_log_info *tli, bool
   };
 */
 			
-int list_files (struct initial_path_info *ipi, bool t_used, bool L_used) {
+int list_files (struct initial_path_info *ipi, const bool t_used, const bool L_used) {
 
 	// ID: 11 | ts_file3.txt | 1 MiB | trashed at: 2024-07-02	
 	// ID: 11 | ts_file3.txt | 1 MiB | 1112731 bytes | trashed at 2024-07-02 (17287368) | originalpath: /home/oskar/code/ts_file3.txt
@@ -605,7 +605,7 @@ int list_files (struct initial_path_info *ipi, bool t_used, bool L_used) {
 
 }
 	
-int choice(int mode) {
+int choice(const int mode) {
 
     char choice;
     char modechoice;
