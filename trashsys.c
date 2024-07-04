@@ -518,19 +518,6 @@ int write_log_file(struct dynamic_paths *dp, struct trashsys_log_info *tli, cons
 	return FUNCTION_SUCCESS;
 }
 
-
-/*
-  struct list_file_content {
-  char ID[128];
-  char filename[FILENAME_MAX];
-  char trashed_filename[FILENAME_MAX];
-  char filesize[128];
-  char time[128];
-  char originalpath[PATH_MAX];
-  char tmp[2];
-  };
-*/
-
 char *rawtime_to_readable(time_t rawtime) {
 
 	struct tm *tmp;
@@ -797,11 +784,13 @@ int main (int argc, char *argv[]) {
 		break;
         }
     }
-	
+	if(optind == argc && (l_used || L_used) == false) {
+		USAGE_OUT(stderr);
+		return EXIT_FAILURE;
+	}
 	if (v_used == true) { v_cvm_fprintf = true; } // Verbose mode
 	cvm_fprintf(v_cvm_fprintf, stdout, "options RCcLltafvny: %d%d%d%d%d%d%d%d%d%d%d\n", R_used, C_used, c_used, L_used, l_used, t_used, a_used, f_used, v_used, n_used, y_used);
 	choice_mode = handle_ynf(y_used, n_used, f_used);
-    choice(choice_mode);
 	
 	struct initial_path_info ipi_m; // _m because i just want to keep in mind that we're in main which is a bit easier for me
 	int cctd;
