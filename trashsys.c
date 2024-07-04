@@ -23,6 +23,7 @@
 #define FUNCTION_FAILURE -1
 #define FUNCTION_SUCCESS 0
 #define REM_SZ(remsz, final) (remsz - strlen(final)) 
+#define USAGE_OUT(stream) (fprintf(stream, "%s", USAGE))
 
 bool v_cvm_fprintf = false;
 int choice_mode = MODE_NORMAL;
@@ -495,7 +496,7 @@ int write_log_file(struct dynamic_paths *dp, struct trashsys_log_info *tli, cons
 		fprintf(stdout, "%s", tmp_path);
 	}
 
-	fprintf(stdout, "logfile path: %s\n", dp->new_logfile_path_incl_name);
+	cvm_fprintf(v_cvm_fprintf, stdout, "logfile path: %s\n", dp->new_logfile_path_incl_name);
 	FILE *file = fopen(dp->new_logfile_path_incl_name, "w");
 	if(file == NULL) {
 		printf("%s\n", strerror(errno));
@@ -714,7 +715,7 @@ int choice(const int mode) {
 int main (int argc, char *argv[]) {
 
 	if (argc == 1) {
-        fprintf(stderr, "%s: please specify a filename\n%s\n", argv[0], USAGE);
+		USAGE_OUT(stderr);
         return EXIT_FAILURE;
     }
 	
@@ -733,7 +734,7 @@ int main (int argc, char *argv[]) {
     int opt;
     //int returnval;
     //char *optarg_copy = NULL; // We will copy optarg to this
-    while ((opt = getopt(argc, argv, "ynvfatlLcCR:")) != -1) {
+    while ((opt = getopt(argc, argv, "ynvfatlLcCR:h")) != -1) {
         switch (opt) {
         case 'y':
 
@@ -790,6 +791,10 @@ int main (int argc, char *argv[]) {
 			R_used = true;
 			
 		break;
+		case 'h':
+			USAGE_OUT(stdout);
+			return EXIT_SUCCESS;
+		break;
         }
     }
 	
@@ -801,19 +806,23 @@ int main (int argc, char *argv[]) {
 	struct initial_path_info ipi_m; // _m because i just want to keep in mind that we're in main which is a bit easier for me
 	int cctd;
 	if(fill_ipi(t_used, &ipi_m) == FUNCTION_FAILURE) {
+		fprintf(stderr, "fill_ipi error, exiting...\n");
 		return EXIT_FAILURE;
 	}
 	cctd = check_create_ts_dirs(&ipi_m); // check for or create directories
 	if(cctd == FUNCTION_FAILURE) {
-		fprintf(stderr, "check_create_ts_dirs(): Cannot create directories\n");
+		fprintf(stderr, "check_create_ts_dirs() error: Cannot create directories\n");
 		return EXIT_FAILURE;
 	}
 
 	if(l_used == true && L_used == true) {
-		fill_lfc(&ipi_m,  L_used);
+		if(fill_lfc(&ipi_m,  L_used) == FUNCTION_FAILURE) { return EXIT_FAILURE; }
 		return EXIT_SUCCESS;
-	} else {
-		fill_lfc(&ipi_m, false);
+	} else if (l_used == true) {
+		if(fill_lfc(&ipi_m,  L_used) == FUNCTION_FAILURE) { return EXIT_FAILURE; }
+		return EXIT_SUCCESS;
+	} else if (L_used == true) {
+	    if(fill_lfc(&ipi_m,  L_used) == FUNCTION_FAILURE) { return EXIT_FAILURE; }
 		return EXIT_SUCCESS;
 	}
 	
