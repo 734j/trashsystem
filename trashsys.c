@@ -374,11 +374,13 @@ int64_t find_highest_id (const struct initial_path_info *ipi) { // Find highest 
 
 		if(concat_str(stat_fullpath, PATH_MAX, ipi->ts_path_log_withslash) == NULL) {
 			fprintf(stderr, "Path is too long\n"); // rare case but at least its handled
+			closedir(dir);
 			return FUNCTION_FAILURE;
 		}
 
 		if(concat_str(stat_fullpath, REM_SZ(PATH_MAX, stat_fullpath), ddd->d_name) == NULL) {
 			fprintf(stderr, "Path is too long\n"); // rare case but at least its handled
+			closedir(dir);
 			return FUNCTION_FAILURE;
 		}
 		
@@ -527,8 +529,67 @@ int write_log_file(struct dynamic_paths *dp, struct trashsys_log_info *tli, cons
   char tmp[2];
   };
 */
-			
-int list_files (struct initial_path_info *ipi, const bool t_used, const bool L_used) {
+
+char *rawtime_to_readable(time_t rawtime) {
+
+	struct tm *tmp;
+	char *pretty_time = malloc(sizeof(char) * 512);
+	tmp = localtime(&rawtime);
+	if(strftime(pretty_time, 512, "%F", tmp) == 0) {
+		free(pretty_time);
+		return NULL;
+	}
+
+	return pretty_time;
+}
+/*
+char *bytes_to_readable(size_t bytes) {
+
+	by
+}
+*/
+int lfc_formatted (struct list_file_content *lfc, const bool L_used) {
+
+	time_t rawtime;
+	char *endptr;
+	char *pretty_time;
+	
+	rawtime = (time_t)strtoll(lfc->time, &endptr, 10);
+	if (errno == ERANGE || lfc->time == endptr) {
+		fprintf(stdout, "strtoll fail\n");
+		return FUNCTION_FAILURE;
+	}
+	pretty_time = rawtime_to_readable(rawtime);
+	if(pretty_time == NULL){
+		fprintf(stdout, "Cannot convert time to readable\n");
+		return FUNCTION_FAILURE;
+	}
+
+	
+	if (L_used == true) {
+		fprintf(stdout, "ID: %s    %s    %s (temporary) MiB    %s bytes    Trashed at: %s (unixtime: %s)    originalpath: %s\n"
+				, lfc->ID
+				, lfc->filename
+				, lfc->filesize
+				, lfc->filesize
+				, pretty_time
+				, lfc->time
+				, lfc->originalpath
+				);
+		free(pretty_time);
+		return FUNCTION_SUCCESS;
+	}
+	fprintf(stdout, "ID: %s    %s    %s bytes    Trashed at: %s\n"
+			, lfc->ID
+			, lfc->filename
+			, lfc->filesize
+			, pretty_time
+			);
+	free(pretty_time);
+	return FUNCTION_SUCCESS;
+}
+
+int fill_lfc (struct initial_path_info *ipi, const bool L_used) {
 
 	// ID: 11 | ts_file3.txt | 1 MiB | trashed at: 2024-07-02	
 	// ID: 11 | ts_file3.txt | 1 MiB | 1112731 bytes | trashed at 2024-07-02 (17287368) | originalpath: /home/oskar/code/ts_file3.txt
@@ -546,12 +607,14 @@ int list_files (struct initial_path_info *ipi, const bool t_used, const bool L_u
 		stat_fullpath[0] = '\0';
 
 		if(concat_str(stat_fullpath, PATH_MAX, ipi->ts_path_log_withslash) == NULL) {
+			closedir(dir);
 			fprintf(stderr, "Path is too long\n"); // rare case but at least its handled
 			return FUNCTION_FAILURE;
 		}
 
 		if(concat_str(stat_fullpath, REM_SZ(PATH_MAX, stat_fullpath), ddd->d_name) == NULL) {
 			fprintf(stderr, "Path is too long\n"); // rare case but at least its handled
+			closedir(dir);
 			return FUNCTION_FAILURE;
 		}
 		
@@ -563,11 +626,10 @@ int list_files (struct initial_path_info *ipi, const bool t_used, const bool L_u
 
 			FILE *file = fopen(stat_fullpath, "r");
 			if (file == NULL) {
+				closedir(dir);
 				return FUNCTION_FAILURE;
 			}
-			if (t_used == true || L_used == true) {
-				return 0;
-			}
+			
 			struct list_file_content lfc;
 			char *lfc_a[7];
 			lfc.ID[0] = '\0';
@@ -589,14 +651,22 @@ int list_files (struct initial_path_info *ipi, const bool t_used, const bool L_u
 			for ( ; i < 7 ; i++, linenum++) {
 				char *line;
 				size_t start;
-				if(get_line(stat_fullpath, linenum, &line, &start) == FUNCTION_FAILURE) { return FUNCTION_FAILURE; }
-				if(concat_str(lfc_a[i], PATH_MAX, line) == NULL) { free(line); return FUNCTION_FAILURE; }
+				if(get_line(stat_fullpath, linenum, &line, &start) == FUNCTION_FAILURE) { closedir(dir); return FUNCTION_FAILURE; }
+				if(concat_str(lfc_a[i], PATH_MAX, line) == NULL) { free(line); closedir(dir); return FUNCTION_FAILURE; }
+				for(int si = 0 ;; si++) {
+					if(lfc_a[i][si] == '\n') {
+						lfc_a[i][si] = '\0';
+						break;
+					}
+				}
 				free(line);
 			}
 			fclose(file);
 			
-			fprintf(stdout, "%s%s%s%s%s%s%s", lfc.ID, lfc.filename, lfc.trashed_filename, lfc.filesize, lfc.time, lfc.originalpath, lfc.tmp);
-			
+			//fprintf(stdout, "%s%s%s%s%s%s%s", lfc.ID, lfc.filename, lfc.trashed_filename, lfc.filesize, lfc.time, lfc.originalpath, lfc.tmp);
+			bool L_used_n = L_used;
+			if(L_used == false) { L_used_n = false; }
+			lfc_formatted(&lfc, L_used_n);
 		}
 	
 	}
@@ -739,8 +809,12 @@ int main (int argc, char *argv[]) {
 		return EXIT_FAILURE;
 	}
 
-	if(l_used == true) {
-		list_files(&ipi_m, t_used, L_used);
+	if(l_used == true && L_used == true) {
+		fill_lfc(&ipi_m,  L_used);
+		return EXIT_SUCCESS;
+	} else {
+		fill_lfc(&ipi_m, false);
+		return EXIT_SUCCESS;
 	}
 	
 	int index;
