@@ -38,14 +38,14 @@ struct trashsys_log_info {
 };
 
 struct list_file_content {
-  char ID[PATH_MAX];
-  char filename[PATH_MAX];
-  char trashed_filename[PATH_MAX];
-  char filesize[PATH_MAX];
-  char time[PATH_MAX];
-  char originalpath[PATH_MAX];
-  char tmp[PATH_MAX];
-  struct list_file_content *next;
+	char ID[PATH_MAX];
+	char filename[PATH_MAX];
+	char trashed_filename[PATH_MAX];
+	char filesize[PATH_MAX];
+	char time[PATH_MAX];
+	char originalpath[PATH_MAX];
+	char tmp[PATH_MAX];
+	struct list_file_content *next;
 };
 
 struct dynamic_paths {
@@ -190,12 +190,6 @@ int cvm_fprintf(const bool ONOROFF, FILE *stream, const char *format, ...) {
     return result;
 } 
 
-// from(25)
-// final(100) 10/100
-// remsz = 100 - strlen(final)
-// remsz = 90
-// 90 > 25+1
-// this means REM_SZ(PATH_MAX, final)
 char *concat_str(char *final, const ssize_t rem_size, const char *from) {
 	// IF you use this function PLEASE know this:
 	// rem_size is the amount of characters left in final
@@ -359,8 +353,7 @@ int check_create_ts_dirs(const struct initial_path_info *ipi) { // 1. Check if t
 	return FUNCTION_SUCCESS;
 }
  
-int64_t find_highest_id (const struct initial_path_info *ipi) { // Find highest id and then return it, because we will create the new log entry as highestID + 1
-
+int64_t find_highest_id (const struct initial_path_info *ipi) { 
 	// We need to check whether a file is a directory or just a file. 
 	int64_t id = 0;
 	struct dirent *ddd;
