@@ -1,5 +1,5 @@
-1. Divide fill_lfc and -L -l function  
-2. Handle case where we pass a bunch of options but no filename
+1. Calculate bytes to MiB and such  
+2. 
 3. Make style and conventions more consistent
 4. 
 5. Clean up some code, remove redundancy and make everything a little smarter where i can
