@@ -604,13 +604,15 @@ struct list_file_content *fill_lfc (struct initial_path_info *ipi) {
 		stat_fullpath[0] = '\0';
 
 		if(concat_str(stat_fullpath, PATH_MAX, ipi->ts_path_log_withslash) == NULL) {
+			fprintf(stderr, "Path is too long\n"); // rare case but at least its handle
+			free_lfc(lfc_head);
 			closedir(dir);
-			fprintf(stderr, "Path is too long\n"); // rare case but at least its handled
 			return NULL;
 		}
 
 		if(concat_str(stat_fullpath, REM_SZ(PATH_MAX, stat_fullpath), ddd->d_name) == NULL) {
 			fprintf(stderr, "Path is too long\n"); // rare case but at least its handled
+			free_lfc(lfc_head);
 			closedir(dir);
 			return NULL;
 		}
@@ -626,9 +628,9 @@ struct list_file_content *fill_lfc (struct initial_path_info *ipi) {
 				first = false;
 			}
 			cvm_fprintf(v_cvm_fprintf, stdout, "is regular file: %s\nstat_fullpath: %s\n", ddd->d_name, stat_fullpath);
-
 			FILE *file = fopen(stat_fullpath, "r");
 			if (file == NULL) {
+				free_lfc(lfc_head);
 				closedir(dir);
 				return NULL;
 			}
@@ -653,8 +655,17 @@ struct list_file_content *fill_lfc (struct initial_path_info *ipi) {
 			for ( ; i < 7 ; i++, linenum++) {
 				char *line;
 				size_t start;
-				if(get_line(stat_fullpath, linenum, &line, &start) == FUNCTION_FAILURE) { closedir(dir); return NULL; }
-				if(concat_str(lfc_a[i], PATH_MAX, line) == NULL) { free(line); closedir(dir); return NULL; }
+				if(get_line(stat_fullpath, linenum, &line, &start) == FUNCTION_FAILURE) {
+					free_lfc(lfc_head);
+					closedir(dir);
+					return NULL;
+				}
+				if(concat_str(lfc_a[i], PATH_MAX, line) == NULL) {
+					free_lfc(lfc_head);
+					free(line);
+					closedir(dir);
+					return NULL;
+				}
 				for(int si = 0 ;; si++) {
 					if(lfc_a[i][si] == '\n') {
 						lfc_a[i][si] = '\0';
@@ -667,7 +678,7 @@ struct list_file_content *fill_lfc (struct initial_path_info *ipi) {
 		}
 	}
 	if(first == true) {
-		free_lfc(lfc);
+		free_lfc(lfc_head);
 		closedir(dir);
 		return NULL;
 	}
