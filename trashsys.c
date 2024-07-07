@@ -45,7 +45,8 @@ struct list_file_content {
   char time[PATH_MAX];
   char originalpath[PATH_MAX];
   char tmp[PATH_MAX];
-  };
+  struct list_file_content *next;
+};
 
 struct dynamic_paths {
 	char old_trashfile_path[PATH_MAX];
@@ -552,7 +553,6 @@ int lfc_formatted (struct list_file_content *lfc, const bool L_used) {
 		fprintf(stdout, "Cannot convert time to readable\n");
 		return FUNCTION_FAILURE;
 	}
-
 	
 	if (L_used == true) {
 		fprintf(stdout, "ID: %s    %s    %s (temporary) MiB    %s bytes    Trashed at: %s (unixtime: %s)    originalpath: %s\n"
@@ -577,70 +577,84 @@ int lfc_formatted (struct list_file_content *lfc, const bool L_used) {
 	return FUNCTION_SUCCESS;
 }
 
-int fill_lfc (struct initial_path_info *ipi, const bool L_used) {
+void free_lfc (struct list_file_content *lfc) {
+	struct list_file_content *save;
+    while (lfc != NULL) {
+        save = lfc;
+        lfc = lfc->next;
+        free(save);
+    }
+}
 
-	// ID: 11 | ts_file3.txt | 1 MiB | trashed at: 2024-07-02	
-	// ID: 11 | ts_file3.txt | 1 MiB | 1112731 bytes | trashed at 2024-07-02 (17287368) | originalpath: /home/oskar/code/ts_file3.txt
+struct list_file_content *fill_lfc (struct initial_path_info *ipi) {
 
 	struct dirent *ddd;
 	DIR *dir = opendir(ipi->ts_path_log);
 	if (dir == NULL) {
-		return FUNCTION_FAILURE;
+		return NULL;
 	}
-	
+
+	struct list_file_content *lfc = malloc(sizeof(struct list_file_content)); // first node
+	struct list_file_content *lfc_head = lfc;
+	bool first = true;
 	while ((ddd = readdir(dir)) != NULL) {
 		
-		// MUST BE TESTED MORE!!!
+		// must BE TESTED MORE!!!
 		char stat_fullpath[PATH_MAX];
 		stat_fullpath[0] = '\0';
 
 		if(concat_str(stat_fullpath, PATH_MAX, ipi->ts_path_log_withslash) == NULL) {
 			closedir(dir);
 			fprintf(stderr, "Path is too long\n"); // rare case but at least its handled
-			return FUNCTION_FAILURE;
+			return NULL;
 		}
 
 		if(concat_str(stat_fullpath, REM_SZ(PATH_MAX, stat_fullpath), ddd->d_name) == NULL) {
 			fprintf(stderr, "Path is too long\n"); // rare case but at least its handled
 			closedir(dir);
-			return FUNCTION_FAILURE;
+			return NULL;
 		}
 		
 		struct stat d_or_f;
 		stat(stat_fullpath, &d_or_f);
 		
 		if(S_ISREG(d_or_f.st_mode)) { // check if given file is actually a file
+			if(first == false) {
+				lfc->next = malloc(sizeof(struct list_file_content));
+				lfc = lfc->next;
+			} else {
+				first = false;
+			}
 			cvm_fprintf(v_cvm_fprintf, stdout, "is regular file: %s\nstat_fullpath: %s\n", ddd->d_name, stat_fullpath);
 
 			FILE *file = fopen(stat_fullpath, "r");
 			if (file == NULL) {
 				closedir(dir);
-				return FUNCTION_FAILURE;
+				return NULL;
 			}
 			
-			struct list_file_content lfc;
 			char *lfc_a[7];
-			lfc.ID[0] = '\0';
-			lfc.filename[0] = '\0';
-			lfc.trashed_filename[0] = '\0';
-			lfc.filesize[0] = '\0';
-			lfc.time[0] = '\0';
-			lfc.originalpath[0] = '\0';
-			lfc.tmp[0] = '\0';
-			lfc_a[0] = lfc.ID;
-			lfc_a[1] = lfc.filename;
-			lfc_a[2] = lfc.trashed_filename;
-			lfc_a[3] = lfc.filesize;
-			lfc_a[4] = lfc.time;
-			lfc_a[5] = lfc.originalpath;
-			lfc_a[6] = lfc.tmp;
+			lfc->ID[0] = '\0';
+			lfc->filename[0] = '\0';
+			lfc->trashed_filename[0] = '\0';
+			lfc->filesize[0] = '\0';
+			lfc->time[0] = '\0';
+			lfc->originalpath[0] = '\0';
+			lfc->tmp[0] = '\0';
+			lfc_a[0] = lfc->ID;
+			lfc_a[1] = lfc->filename;
+			lfc_a[2] = lfc->trashed_filename;
+			lfc_a[3] = lfc->filesize;
+			lfc_a[4] = lfc->time;
+			lfc_a[5] = lfc->originalpath;
+			lfc_a[6] = lfc->tmp;
 			int i = 0;
 			int linenum = 1;
 			for ( ; i < 7 ; i++, linenum++) {
 				char *line;
 				size_t start;
-				if(get_line(stat_fullpath, linenum, &line, &start) == FUNCTION_FAILURE) { closedir(dir); return FUNCTION_FAILURE; }
-				if(concat_str(lfc_a[i], PATH_MAX, line) == NULL) { free(line); closedir(dir); return FUNCTION_FAILURE; }
+				if(get_line(stat_fullpath, linenum, &line, &start) == FUNCTION_FAILURE) { closedir(dir); return NULL; }
+				if(concat_str(lfc_a[i], PATH_MAX, line) == NULL) { free(line); closedir(dir); return NULL; }
 				for(int si = 0 ;; si++) {
 					if(lfc_a[i][si] == '\n') {
 						lfc_a[i][si] = '\0';
@@ -649,17 +663,17 @@ int fill_lfc (struct initial_path_info *ipi, const bool L_used) {
 				}
 				free(line);
 			}
-			fclose(file);
-			
-			//fprintf(stdout, "%s%s%s%s%s%s%s", lfc.ID, lfc.filename, lfc.trashed_filename, lfc.filesize, lfc.time, lfc.originalpath, lfc.tmp);
-			bool L_used_n = L_used;
-			if(L_used == false) { L_used_n = false; }
-			lfc_formatted(&lfc, L_used_n);
+			fclose(file); 
 		}
-	
 	}
+	if(first == true) {
+		free_lfc(lfc);
+		closedir(dir);
+		return NULL;
+	}
+	lfc = NULL;
 	closedir(dir);
-	return FUNCTION_SUCCESS;
+	return lfc_head;
 
 }
 	
@@ -804,14 +818,16 @@ int main (int argc, char *argv[]) {
 		return EXIT_FAILURE;
 	}
 
-	if(l_used == true && L_used == true) {
-		if(fill_lfc(&ipi_m,  L_used) == FUNCTION_FAILURE) { return EXIT_FAILURE; }
-		return EXIT_SUCCESS;
-	} else if (l_used == true) {
-		if(fill_lfc(&ipi_m,  L_used) == FUNCTION_FAILURE) { return EXIT_FAILURE; }
-		return EXIT_SUCCESS;
-	} else if (L_used == true) {
-	    if(fill_lfc(&ipi_m,  L_used) == FUNCTION_FAILURE) { return EXIT_FAILURE; }
+	if(l_used == true || L_used == true) {
+		struct list_file_content *lfc = fill_lfc(&ipi_m);
+		struct list_file_content *walk;
+		int i = 1;
+		//int lfc_formatted (struct list_file_content *lfc, const bool L_used)
+		if(lfc == NULL) { return EXIT_SUCCESS; }
+		for(walk = lfc ; walk != NULL ; walk = walk->next, i++) {
+			lfc_formatted(walk, L_used);
+		}
+		free_lfc(lfc);
 		return EXIT_SUCCESS;
 	}
 	
