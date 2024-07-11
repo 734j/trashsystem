@@ -534,7 +534,7 @@ char *bytes_to_readable_str(size_t bytes, char *str, size_t str_len) {
 	char tmp_str[str_len];
 	double f_bytes = (double)bytes;
 	int count = 0;
-	char *fff_a[] = {"B", "KiB", "MiB", "GiB"};
+	char *BKMG[] = {"B", "KiB", "MiB", "GiB"};
 	   
 	while (f_bytes >= 1024) {
 		f_bytes = f_bytes / 1024;
@@ -546,7 +546,7 @@ char *bytes_to_readable_str(size_t bytes, char *str, size_t str_len) {
 		return NULL;
 	}
 	
-	return fff_a[count];
+	return BKMG[count];
 }
 
 int lfc_formatted (struct list_file_content *lfc, const bool L_used) {
