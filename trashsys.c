@@ -579,7 +579,7 @@ int lfc_formatted (struct list_file_content *lfc, const bool L_used) {
 	readable_mib_str[0] = '\0';
   	fff = bytes_to_readable_str(filesize_bytes, readable_mib_str, str_len);
 	if (L_used == true) {
-		fprintf(stdout, "ID: %s    %s    %s %s    %s    Trashed at: %s (unixtime: %s)    originalpath: %s\n"
+		fprintf(stdout, "ID: %s    %s    %s %s    %s B    Trashed at: %s (unixtime: %s)    originalpath: %s\n"
 				, lfc->ID
 				, lfc->filename
 				, readable_mib_str
