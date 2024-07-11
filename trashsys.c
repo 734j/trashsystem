@@ -22,6 +22,10 @@
 #define NOFILE 3
 #define FUNCTION_FAILURE -1
 #define FUNCTION_SUCCESS 0
+#define BYTES 10
+#define KiB 210
+#define MiB 220
+#define GiB 230
 #define REM_SZ(remsz, final) (remsz - strlen(final)) 
 #define USAGE_OUT(stream) (fprintf(stream, "%s", USAGE))
 
@@ -525,28 +529,24 @@ char *rawtime_to_readable(time_t rawtime) {
 	return pretty_time;
 }
 
-int bytes_to_readable_str(size_t bytes, char *str, size_t str_len) { // rough estimation of MiB
+char *bytes_to_readable_str(size_t bytes, char *str, size_t str_len) {
 
 	char tmp_str[str_len];
-	double f_bytes;
-	char *float_precision;
-	char *fov1 = "%.1f";
-	char *feq0 = "%.0f";
-	char *fun1 = "%f";
-	f_bytes = (double)bytes / 1024 / 1024;
-	if(f_bytes > 1) {
-		float_precision = fov1;
-	} else if (f_bytes == 0) {
-		float_precision = feq0;
-	} else if (f_bytes < 1) {
-		float_precision = fun1;
-	}
-	snprintf(tmp_str, str_len, float_precision, f_bytes);
-	if(concat_str(str, str_len, tmp_str) == NULL) {
-		return FUNCTION_FAILURE;
+	double f_bytes = (double)bytes;
+	int count = 0;
+	char *fff_a[] = {"B", "KiB", "MiB", "GiB"};
+	   
+	while (f_bytes >= 1024) {
+		f_bytes = f_bytes / 1024;
+		count++;
 	}
 	
-	return FUNCTION_SUCCESS;
+	snprintf(tmp_str, str_len, "%0.1f", f_bytes);
+	if(concat_str(str, str_len, tmp_str) == NULL) {
+		return NULL;
+	}
+	
+	return fff_a[count];
 }
 
 int lfc_formatted (struct list_file_content *lfc, const bool L_used) {
@@ -573,16 +573,17 @@ int lfc_formatted (struct list_file_content *lfc, const bool L_used) {
 		fprintf(stdout, "Cannot convert time to readable\n");
 		return FUNCTION_FAILURE;
 	}
-
+	char *fff;
 	size_t str_len = 1024;
 	char readable_mib_str[str_len];
 	readable_mib_str[0] = '\0';
-	bytes_to_readable_str(filesize_bytes, readable_mib_str, str_len);
+  	fff = bytes_to_readable_str(filesize_bytes, readable_mib_str, str_len);
 	if (L_used == true) {
-		fprintf(stdout, "ID: %s    %s    %s MiB    %s bytes    Trashed at: %s (unixtime: %s)    originalpath: %s\n"
+		fprintf(stdout, "ID: %s    %s    %s %s    %s    Trashed at: %s (unixtime: %s)    originalpath: %s\n"
 				, lfc->ID
 				, lfc->filename
 				, readable_mib_str
+				, fff
 				, lfc->filesize
 				, pretty_time
 				, lfc->time
@@ -591,10 +592,11 @@ int lfc_formatted (struct list_file_content *lfc, const bool L_used) {
 		free(pretty_time);
 		return FUNCTION_SUCCESS;
 	}
-	fprintf(stdout, "ID: %s    %s    %s MiB    Trashed at: %s\n"
+	fprintf(stdout, "ID: %s    %s    %s %s    Trashed at: %s\n"
 			, lfc->ID
 			, lfc->filename
 			, readable_mib_str
+			, fff
 			, pretty_time
 			);
 	free(pretty_time);
