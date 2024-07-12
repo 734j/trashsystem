@@ -22,10 +22,6 @@
 #define NOFILE 3
 #define FUNCTION_FAILURE -1
 #define FUNCTION_SUCCESS 0
-#define BYTES 10
-#define KiB 210
-#define MiB 220
-#define GiB 230
 #define REM_SZ(remsz, final) (remsz - strlen(final)) 
 #define USAGE_OUT(stream) (fprintf(stream, "%s", USAGE))
 
