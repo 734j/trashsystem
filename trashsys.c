@@ -66,7 +66,7 @@ struct initial_path_info { // Initial useful strings to create before we do anyt
 	char ts_path_trashed_withslash[PATH_MAX];
 };
 
-int handle_ynf(const bool y_used, const bool n_used, const bool f_used) { // Will handle cases for y, n and f. Exits if any of these are used together.
+int handle_ynf (const bool y_used, const bool n_used, const bool f_used) { // Will handle cases for y, n and f. Exits if any of these are used together.
 
 	int choice_mode_ynf = MODE_NORMAL;
 
@@ -83,7 +83,43 @@ int handle_ynf(const bool y_used, const bool n_used, const bool f_used) { // Wil
 	return choice_mode_ynf;
 }
 
-int get_line(const char *filename, long focus, char **line, size_t *start) { // taken from 7Editor and modified slightly
+int choice (const int mode) {
+
+    char choice;
+    char modechoice;
+
+    do {
+
+    if (mode == MODE_NORMAL) { fputs("[Y / N] ? ", stdout); }
+    if (mode == MODE_YES) { fputs("[Y / n] ? ", stdout); }
+    if (mode == MODE_NO) { fputs("[y / N] ? ", stdout); }
+	if (mode == MODE_FORCE) { return 0; }
+	
+    choice = getchar();
+    if (choice == '\n' && mode == MODE_YES) { modechoice = 'Y'; choice = modechoice; goto modeskip;}
+    if (choice == '\n' && mode == MODE_NO) { modechoice = 'N'; choice = modechoice; goto modeskip;}
+    if (choice == '\n' && mode == MODE_NORMAL) { continue; }
+
+    while ('\n' != getchar());
+
+    } while ( (choice != 'Y') && (choice != 'y') && (choice != 'N') && (choice != 'n') );
+
+    modeskip:
+
+    if ( (choice == 'Y') || (choice == 'y') ) 
+    {
+        return 0;
+    }
+
+    if ((choice == 'N') || (choice == 'n') )
+    {
+        return 1;
+    }
+
+    return FUNCTION_FAILURE; // Should never happen
+}
+
+int get_line (const char *filename, long focus, char **line, size_t *start) { // taken from 7Editor and modified slightly
     
     FILE *file;
     file = fopen(filename,"r"); // Open file
@@ -176,7 +212,7 @@ int get_line(const char *filename, long focus, char **line, size_t *start) { // 
     return FUNCTION_SUCCESS;
 }
 
-int cvm_fprintf(const bool ONOROFF, FILE *stream, const char *format, ...) {
+int cvm_fprintf (const bool ONOROFF, FILE *stream, const char *format, ...) {
     
     if (ONOROFF == false) {
         return FUNCTION_SUCCESS; 
@@ -190,7 +226,7 @@ int cvm_fprintf(const bool ONOROFF, FILE *stream, const char *format, ...) {
     return result;
 } 
 
-char *concat_str(char *final, const ssize_t rem_size, const char *from) {
+char *concat_str (char *final, const ssize_t rem_size, const char *from) {
 	// IF you use this function PLEASE know this:
 	// rem_size is the amount of characters left in final
 	// rem_size should NOT include \0 in the size
@@ -211,7 +247,7 @@ char *concat_str(char *final, const ssize_t rem_size, const char *from) {
 	return final;
 }
 
-int fill_ipi(const bool t_used, struct initial_path_info *ipi) { // Function for filling out initial_path_info so it can be used later
+int fill_ipi (const bool t_used, struct initial_path_info *ipi) { // Function for filling out initial_path_info so it can be used later
 
 	const char *ts_toplevel = "/.trashsys";
 	const char *ts_log = "/log";	
@@ -482,7 +518,7 @@ int fill_dynamic_paths (struct initial_path_info *ipi, struct trashsys_log_info 
 	return FUNCTION_SUCCESS;
 }
 
-int write_log_file(struct dynamic_paths *dp, struct trashsys_log_info *tli, const bool t_used_aka_tmp) {
+int write_log_file (struct dynamic_paths *dp, struct trashsys_log_info *tli, const bool t_used_aka_tmp) {
 
 	char *tmp_path = "/tmp/";
 
@@ -512,7 +548,7 @@ int write_log_file(struct dynamic_paths *dp, struct trashsys_log_info *tli, cons
 	return FUNCTION_SUCCESS;
 }
 
-char *rawtime_to_readable(time_t rawtime) {
+char *rawtime_to_readable (time_t rawtime) {
 
 	struct tm *tmp;
 	char *pretty_time = malloc(sizeof(char) * 512);
@@ -525,7 +561,7 @@ char *rawtime_to_readable(time_t rawtime) {
 	return pretty_time;
 }
 
-char *bytes_to_readable_str(size_t bytes, char *str, size_t str_len) {
+char *bytes_to_readable_str (size_t bytes, char *str, size_t str_len) {
 
 	char tmp_str[str_len];
 	double f_bytes = (double)bytes;
@@ -709,41 +745,46 @@ struct list_file_content *fill_lfc (struct initial_path_info *ipi) {
 	return lfc_head;
 
 }
+
+int clear_all_files (char *paths, const int mode) {
 	
-int choice(const int mode) {
-
-    char choice;
-    char modechoice;
-
-    do {
-
-    if (mode == MODE_NORMAL) { fputs("[Y / N] ? ", stdout); }
-    if (mode == MODE_YES) { fputs("[Y / n] ? ", stdout); }
-    if (mode == MODE_NO) { fputs("[y / N] ? ", stdout); }
-	if (mode == MODE_FORCE) { return 0; }
+	if(choice(mode) == 1) {
+		return FUNCTION_SUCCESS;
+	}
 	
-    choice = getchar();
-    if (choice == '\n' && mode == MODE_YES) { modechoice = 'Y'; choice = modechoice; goto modeskip;}
-    if (choice == '\n' && mode == MODE_NO) { modechoice = 'N'; choice = modechoice; goto modeskip;}
-    if (choice == '\n' && mode == MODE_NORMAL) { continue; }
-
-    while ('\n' != getchar());
-
-    } while ( (choice != 'Y') && (choice != 'y') && (choice != 'N') && (choice != 'n') );
-
-    modeskip:
-
-    if ( (choice == 'Y') || (choice == 'y') ) 
-    {
-        return 0;
-    }
-
-    if ((choice == 'N') || (choice == 'n') )
-    {
-        return 1;
-    }
-
-    return FUNCTION_FAILURE; // Should never happen
+	struct dirent *ddd;
+	DIR *dir = opendir(paths);
+	if (dir == NULL) {
+		return FUNCTION_FAILURE;
+	}
+	
+	while ((ddd = readdir(dir)) != NULL) {
+		
+		if (strncmp(".", ddd->d_name, 2) == 0 || strncmp("..", ddd->d_name, 3) == 0) {
+			continue;
+		}
+		char all[PATH_MAX];
+		all[0] = '\0';
+		if(concat_str(all, PATH_MAX, paths) == NULL) {
+			closedir(dir);
+			return FUNCTION_FAILURE;
+		}
+		if(concat_str(all, REM_SZ(PATH_MAX, all), ddd->d_name) == NULL) {
+			closedir(dir);
+			return FUNCTION_FAILURE;
+		}
+		int rm = remove(all);
+		if(rm == -1) {
+			fprintf(stdout, "failed to remove: %s\n", ddd->d_name);
+			continue;
+		}
+		
+		cvm_fprintf(v_cvm_fprintf, stdout, "removed %s\n", ddd->d_name);
+		
+	}
+	closedir(dir);
+	
+	return FUNCTION_SUCCESS;
 }
 
 int main (int argc, char *argv[]) {
@@ -831,7 +872,7 @@ int main (int argc, char *argv[]) {
 		break;
         }
     }
-	if(optind == argc && (l_used || L_used) == false) {
+	if(optind == argc && (l_used || L_used || C_used) == false) {
 		USAGE_OUT(stderr);
 		return EXIT_FAILURE;
 	}
@@ -848,6 +889,13 @@ int main (int argc, char *argv[]) {
 	cctd = check_create_ts_dirs(&ipi_m); // check for or create directories
 	if(cctd == FUNCTION_FAILURE) {
 		fprintf(stderr, "check_create_ts_dirs() error: Cannot create directories\n");
+		return EXIT_FAILURE;
+	}
+
+
+	if(C_used == true) {
+		clear_all_files(ipi_m.ts_path_log_withslash, choice_mode);
+		clear_all_files(ipi_m.ts_path_trashed_withslash, choice_mode); 
 		return EXIT_FAILURE;
 	}
 
