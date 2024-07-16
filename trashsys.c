@@ -787,6 +787,26 @@ int clear_all_files (char *paths, const int mode) {
 	return FUNCTION_SUCCESS;
 }
 
+int compare_unixtime (time_t deleted_time, int difference_in_days) {
+
+	time_t diff_converted;
+	time_t current_time;
+	time_t final;
+	diff_converted = (time_t)difference_in_days * 86400;
+	current_time = time(NULL);
+	if(current_time == -1) {
+		return FUNCTION_FAILURE;
+	}
+
+	final = current_time - deleted_time; 
+	if(final < diff_converted) {
+		printf("failure\n");
+		return FUNCTION_FAILURE;
+	}
+	printf("success\n");
+	return FUNCTION_SUCCESS;
+}
+
 int main (int argc, char *argv[]) {
 
 	if (argc == 1) {
