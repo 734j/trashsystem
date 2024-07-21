@@ -800,10 +800,10 @@ int compare_unixtime (time_t deleted_time, int difference_in_days) {
 
 	final = current_time - deleted_time; 
 	if(final < diff_converted) {
-		cvm_fprintf(v_cvm_fprintf, stdout, "final is not older than diff_converted");
+		cvm_fprintf(v_cvm_fprintf, stdout, "final is not older than diff_converted\n");
 		return FUNCTION_FAILURE;
 	}
-	cvm_fprintf(v_cvm_fprintf, stdout, "final is older than diff_converted");
+	cvm_fprintf(v_cvm_fprintf, stdout, "final is older than diff_converted\n");
 	return FUNCTION_SUCCESS;
 }
 
@@ -812,30 +812,6 @@ int clear_old_files (int file_age_in_days, struct initial_path_info *ipi) {
 	struct list_file_content *lfc = fill_lfc(ipi);
 	struct list_file_content *walk;
 	int i = 1;
-	//int lfc_formatted (struct list_file_content *lfc, const bool L_used)
-	/*
-	  struct list_file_content {
-	  char ID[PATH_MAX];
-	  char filename[PATH_MAX];
-	  char trashed_filename[PATH_MAX];
-	  char filesize[PATH_MAX];
-	  char time[PATH_MAX];
-	  char originalpath[PATH_MAX];
-	  char tmp[PATH_MAX];
-	  struct list_file_content *next;
-	};
-
-	struct initial_path_info { // Initial useful strings to create before we do anything. Super useful when programming.
-	char ts_path_user_home[PATH_MAX];
-	char ts_path_trashsys[PATH_MAX];
-	char ts_path_log[PATH_MAX];
-	char ts_path_trashed[PATH_MAX];
-	char ts_path_user_home_withslash[PATH_MAX];
-	char ts_path_trashsys_withslash[PATH_MAX];
-	char ts_path_log_withslash[PATH_MAX];
-	char ts_path_trashed_withslash[PATH_MAX];
-	};
-	*/
 	if(lfc == NULL) { return EXIT_SUCCESS; }
 	for(walk = lfc ; walk != NULL ; walk = walk->next, i++) {
 		char *endptr;
@@ -887,7 +863,12 @@ int main (int argc, char *argv[]) {
 		USAGE_OUT(stderr);
         return EXIT_FAILURE;
     }
-	
+
+	int R_mut = 0;
+	int C_mut = 0;
+	int c_mut = 0;
+	int L_mut = 0;
+	int l_mut = 0;
 	bool y_used = false;
 	bool n_used = false;
 	bool v_used = false;
@@ -936,27 +917,32 @@ int main (int argc, char *argv[]) {
 			
 		break;
 		case 'l':
-			
+
+			l_mut = 1;
 			l_used = true;
 			
 		break;
 		case 'L':
-			
+
+			L_mut = 1;
 			L_used = true;
 			
 		break;
 		case 'c':
-			
+
+			c_mut = 1;
 			c_used = true;
 			
 		break;
 		case 'C':
-			
+
+			C_mut = 1;
 			C_used = true;
 			
 		break;
 		case 'R':
-			
+
+			R_mut = 1;
 			R_used = true;
 			
 		break;
@@ -966,6 +952,12 @@ int main (int argc, char *argv[]) {
 		break;
         }
     }
+
+	if((R_mut + C_mut + c_mut + L_mut + l_mut) > 1) {
+		USAGE_OUT(stderr);
+		return EXIT_FAILURE;
+	}
+
 	if(optind == argc && (l_used || L_used || C_used || c_used) == false) {
 		USAGE_OUT(stderr);
 		return EXIT_FAILURE;
