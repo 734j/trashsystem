@@ -653,6 +653,7 @@ struct list_file_content *fill_lfc (struct initial_path_info *ipi) {
 	}
 
 	struct list_file_content *lfc = malloc(sizeof(struct list_file_content)); // first node
+	lfc->next = NULL;
 	struct list_file_content *lfc_head = lfc;
 	bool first = true;
 	while ((ddd = readdir(dir)) != NULL) {
@@ -680,8 +681,9 @@ struct list_file_content *fill_lfc (struct initial_path_info *ipi) {
 		
 		if(S_ISREG(d_or_f.st_mode)) { // check if given file is actually a file
 			if(first == false) {
-				lfc->next = malloc(sizeof(struct list_file_content));
-				lfc = lfc->next;
+				lfc->next = malloc(sizeof(struct list_file_content)); // Create next node
+				lfc = lfc->next; // Point lfc to the newly created node
+				lfc->next = NULL; // Set next to NULL so in case there is a failure, free_lfc wont get a segfault
 			} else {
 				first = false;
 			}
@@ -746,29 +748,28 @@ struct list_file_content *fill_lfc (struct initial_path_info *ipi) {
 
 }
 
-int clear_all_files (char *paths, const int mode) {
-	
-	if(choice(mode) == 1) {
-		return FUNCTION_SUCCESS;
-	}
+int clear_all_files (char *paths) {
 	
 	struct dirent *ddd;
 	DIR *dir = opendir(paths);
 	if (dir == NULL) {
 		return FUNCTION_FAILURE;
 	}
+
+	char all[PATH_MAX] = {0};
+	if(concat_str(all, PATH_MAX, paths) == NULL) {
+		closedir(dir);
+		return FUNCTION_FAILURE;
+	}
 	
+	int paths_len = strlen(paths);
 	while ((ddd = readdir(dir)) != NULL) {
 		
 		if (strncmp(".", ddd->d_name, 2) == 0 || strncmp("..", ddd->d_name, 3) == 0) {
 			continue;
 		}
-		char all[PATH_MAX];
-		all[0] = '\0';
-		if(concat_str(all, PATH_MAX, paths) == NULL) {
-			closedir(dir);
-			return FUNCTION_FAILURE;
-		}
+		
+		all[paths_len] = '\0';
 		if(concat_str(all, REM_SZ(PATH_MAX, all), ddd->d_name) == NULL) {
 			closedir(dir);
 			return FUNCTION_FAILURE;
@@ -783,7 +784,6 @@ int clear_all_files (char *paths, const int mode) {
 		
 	}
 	closedir(dir);
-	
 	return FUNCTION_SUCCESS;
 }
 
@@ -800,11 +800,85 @@ int compare_unixtime (time_t deleted_time, int difference_in_days) {
 
 	final = current_time - deleted_time; 
 	if(final < diff_converted) {
-		printf("failure\n");
+		cvm_fprintf(v_cvm_fprintf, stdout, "final is not older than diff_converted");
 		return FUNCTION_FAILURE;
 	}
-	printf("success\n");
+	cvm_fprintf(v_cvm_fprintf, stdout, "final is older than diff_converted");
 	return FUNCTION_SUCCESS;
+}
+
+int clear_old_files (int file_age_in_days, struct initial_path_info *ipi) {
+
+	struct list_file_content *lfc = fill_lfc(ipi);
+	struct list_file_content *walk;
+	int i = 1;
+	//int lfc_formatted (struct list_file_content *lfc, const bool L_used)
+	/*
+	  struct list_file_content {
+	  char ID[PATH_MAX];
+	  char filename[PATH_MAX];
+	  char trashed_filename[PATH_MAX];
+	  char filesize[PATH_MAX];
+	  char time[PATH_MAX];
+	  char originalpath[PATH_MAX];
+	  char tmp[PATH_MAX];
+	  struct list_file_content *next;
+	};
+
+	struct initial_path_info { // Initial useful strings to create before we do anything. Super useful when programming.
+	char ts_path_user_home[PATH_MAX];
+	char ts_path_trashsys[PATH_MAX];
+	char ts_path_log[PATH_MAX];
+	char ts_path_trashed[PATH_MAX];
+	char ts_path_user_home_withslash[PATH_MAX];
+	char ts_path_trashsys_withslash[PATH_MAX];
+	char ts_path_log_withslash[PATH_MAX];
+	char ts_path_trashed_withslash[PATH_MAX];
+	};
+	*/
+	if(lfc == NULL) { return EXIT_SUCCESS; }
+	for(walk = lfc ; walk != NULL ; walk = walk->next, i++) {
+		char *endptr;
+		time_t deleted_time = (time_t)strtoll(walk->time, &endptr, 10);
+		if (errno == ERANGE || lfc->time == endptr) {
+			fprintf(stdout, "strtoll fail\n");
+			return FUNCTION_FAILURE;
+		}
+		if(compare_unixtime(deleted_time, file_age_in_days) == FUNCTION_FAILURE) {
+			continue;
+		}
+		char cur_log_path[PATH_MAX];
+		char cur_trashed_path[PATH_MAX];
+		cur_log_path[0] = '\0';
+		cur_trashed_path[0] = '\0';
+		if(concat_str(cur_log_path, PATH_MAX, ipi->ts_path_log_withslash) == NULL
+			|| concat_str(cur_trashed_path, PATH_MAX, ipi->ts_path_trashed_withslash) == NULL) {
+			fprintf(stderr, "Paths are too long. Continuing to next file.\n");
+			continue;
+		}
+		if(concat_str(cur_log_path, REM_SZ(PATH_MAX, cur_log_path), walk->trashed_filename) == NULL
+			|| concat_str(cur_trashed_path, REM_SZ(PATH_MAX, cur_trashed_path), walk->trashed_filename) == NULL) {
+			fprintf(stderr, "Paths are too long. Continuing to next file.\n");
+			continue;
+		}
+		if(concat_str(cur_log_path, REM_SZ(PATH_MAX, cur_log_path), ".log") == NULL) {
+			fprintf(stderr, "Paths are too long. Continuing to next file.\n");
+			continue;
+		}
+		int rm1 = remove(cur_log_path);
+		int rm2 = remove(cur_trashed_path);
+		if(rm1 == -1 || rm2 == -1) {
+			if(rm1 == -1) {fprintf(stdout, "failed to remove: %s\n", cur_log_path);}
+			if(rm2 == -1) {fprintf(stdout, "failed to remove: %s\n", cur_trashed_path);}
+			continue;
+		}
+		
+		cvm_fprintf(v_cvm_fprintf, stdout, "removed %s\n", cur_log_path);
+		cvm_fprintf(v_cvm_fprintf, stdout, "removed %s\n", cur_trashed_path);
+	}
+	
+	free_lfc(lfc);
+	return EXIT_SUCCESS;
 }
 
 int main (int argc, char *argv[]) {
@@ -892,11 +966,16 @@ int main (int argc, char *argv[]) {
 		break;
         }
     }
-	if(optind == argc && (l_used || L_used || C_used) == false) {
+	if(optind == argc && (l_used || L_used || C_used || c_used) == false) {
 		USAGE_OUT(stderr);
 		return EXIT_FAILURE;
 	}
-	if (v_used == true) { v_cvm_fprintf = true; } // Verbose mode
+	if(c_used && C_used) {
+		USAGE_OUT(stderr);
+		return EXIT_FAILURE;
+	}
+	
+	if(v_used == true) { v_cvm_fprintf = true; } // Verbose mode
 	cvm_fprintf(v_cvm_fprintf, stdout, "options RCcLltafvny: %d%d%d%d%d%d%d%d%d%d%d\n", R_used, C_used, c_used, L_used, l_used, t_used, a_used, f_used, v_used, n_used, y_used);
 	choice_mode = handle_ynf(y_used, n_used, f_used);
 	
@@ -912,11 +991,17 @@ int main (int argc, char *argv[]) {
 		return EXIT_FAILURE;
 	}
 
-
+	if(c_used == true) {
+		clear_old_files(30, &ipi_m);
+		return EXIT_SUCCESS;
+	}
 	if(C_used == true) {
-		clear_all_files(ipi_m.ts_path_log_withslash, choice_mode);
-		clear_all_files(ipi_m.ts_path_trashed_withslash, choice_mode); 
-		return EXIT_FAILURE;
+		if(choice(choice_mode) == 1) {
+			return EXIT_SUCCESS;
+		}
+		clear_all_files(ipi_m.ts_path_log_withslash);
+		clear_all_files(ipi_m.ts_path_trashed_withslash); 
+		return EXIT_SUCCESS;
 	}
 
 	if(l_used == true || L_used == true) {
