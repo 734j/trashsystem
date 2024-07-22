@@ -29,7 +29,8 @@
 	               "  -h               Display this help message.\n"\
 	               "  -R id            Restore a file by ID. Use -l or -L to find the ID associated with the file.\n"\
 	               "  -v               Verbose mode, not recommended unless you are a developer.\n"\
-	               "\n"  
+	               "  -i               Check for inconsistencies in the logs and trashed files (maybe implement)\n"\
+	               "\n"
 #define MODE_NORMAL -1
 #define MODE_YES 0
 #define MODE_NO 1
