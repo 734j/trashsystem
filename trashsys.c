@@ -1,3 +1,5 @@
+#define _XOPEN_SOURCE 500
+#include <ftw.h>
 #include <stdio.h>
 #include <stdbool.h>
 #include <stdint.h>
@@ -6,12 +8,13 @@
 #include <time.h>
 #include <fcntl.h>
 #include <errno.h>
-#include <sys/stat.h>
 #include <pwd.h>
 #include <string.h>
 #include <libgen.h>
 #include <dirent.h>
 #include <stdarg.h>
+#include <limits.h>
+#include <sys/stat.h>
 
 #define USAGE "tsr [-vt] [-y][-n][-f][-a][-l][-L][-c][-C][-h][-R id] [FILE(s)]\n"
 #define LONG_USAGE "tsr [options] filename(s)\n"\
@@ -53,6 +56,7 @@ struct trashsys_log_info {
 	time_t ts_log_trashtime;
 	char ts_log_originalpath[PATH_MAX];
 	bool ts_log_tmp;
+	bool ts_is_dir;
 };
 
 struct list_file_content {
@@ -63,6 +67,7 @@ struct list_file_content {
 	char time[PATH_MAX];
 	char originalpath[PATH_MAX];
 	char tmp[PATH_MAX];
+	char is_dir[PATH_MAX];
 	struct list_file_content *next;
 };
 
@@ -483,13 +488,25 @@ int tli_fill_info (struct trashsys_log_info *tli, char* filename, const bool log
 	curtime = time(NULL);
 	if (curtime == -1) { return FUNCTION_FAILURE; }
 	tli->ts_log_trashtime = curtime;
-	FILE *file = fopen(filename, "r"); // We get the filesize in bytes
-	if(file == NULL) { return NOFILE; }
-	fseek(file, 0, SEEK_END);
-	long filesize = ftell(file);
-	fclose(file);
-	tli->ts_log_filesize = (size_t)filesize;
-
+	
+	struct stat s;
+	char *rp2 = realpath(filename, NULL);
+	stat(rp2, &s);
+	free(rp2);
+	if(S_ISDIR(s.st_mode)) {
+		tli->ts_is_dir = true;
+		tli->ts_log_filesize = 0;
+		// Code to recursively check size within directories
+	} else {
+		FILE *file = fopen(filename, "r"); // We get the filesize in bytes /*Perhaps we need to check if its a dir/file here?*/
+		if(file == NULL) {
+			return NOFILE;
+		}
+		fseek(file, 0, SEEK_END);
+		long filesize = ftell(file);
+		fclose(file);
+		tli->ts_log_filesize = (size_t)filesize;
+	}
 	int64_t ID = find_highest_id(ipi);
 	if (ID == FUNCTION_FAILURE) {
 		return FUNCTION_FAILURE;
@@ -552,14 +569,16 @@ int write_log_file (struct dynamic_paths *dp, struct trashsys_log_info *tli, con
 	}
 
 	/*this fprintf is what WRITES in to the logfile*/
-	fprintf(file, "%ld\n%s\n%s\n%ld\n%ld\n%s\n%d\n"
+	fprintf(file, "%ld\n%s\n%s\n%ld\n%ld\n%s\n%d\n%d\n"
 			, tli->ts_log_id
 			, tli->ts_log_filename
 			, dp->new_trashfile_filename
 			, tli->ts_log_filesize
 			, tli->ts_log_trashtime
 			, tli->ts_log_originalpath
-			, tli->ts_log_tmp);
+			, tli->ts_log_tmp
+			, tli->ts_is_dir
+			);
 	
 	fclose(file);
 
@@ -606,8 +625,10 @@ int lfc_formatted (struct list_file_content *lfc, const bool L_used) {
 	char *endptr;
 	char *endptr2;
 	char *pretty_time;
-
-
+	char *dir = "directory";
+	char *file = "file";
+	char *type;
+	
 	rawtime = (time_t)strtoll(lfc->time, &endptr, 10);
 	if (errno == ERANGE || lfc->time == endptr) {
 		fprintf(stdout, "strtoll fail\n");
@@ -623,13 +644,19 @@ int lfc_formatted (struct list_file_content *lfc, const bool L_used) {
 		fprintf(stdout, "Cannot convert time to readable\n");
 		return FUNCTION_FAILURE;
 	}
+	if(lfc->is_dir[0] == '0') {
+		type = file;
+	} else if(lfc->is_dir[0] == '1') {
+		type = dir;
+	}
+	
 	char *fff;
 	size_t str_len = 1024;
 	char readable_mib_str[str_len];
 	readable_mib_str[0] = '\0';
   	fff = bytes_to_readable_str(filesize_bytes, readable_mib_str, str_len);
 	if (L_used == true) {
-		fprintf(stdout, "ID: %s    %s    %s %s    %s B    Trashed at: %s (unixtime: %s)    originalpath: %s\n"
+		fprintf(stdout, "ID: %s    %s    %s %s    %s B    Trashed at: %s (unixtime: %s)    originalpath: %s    type: %s\n"
 				, lfc->ID
 				, lfc->filename
 				, readable_mib_str
@@ -638,16 +665,18 @@ int lfc_formatted (struct list_file_content *lfc, const bool L_used) {
 				, pretty_time
 				, lfc->time
 				, lfc->originalpath
+				, type
 				);
 		free(pretty_time);
 		return FUNCTION_SUCCESS;
 	}
-	fprintf(stdout, "ID: %s    %s    %s %s    Trashed at: %s\n"
+	fprintf(stdout, "ID: %s    %s    %s %s    Trashed at: %s    type: %s\n"
 			, lfc->ID
 			, lfc->filename
 			, readable_mib_str
 			, fff
 			, pretty_time
+			, type
 			);
 	free(pretty_time);
 	return FUNCTION_SUCCESS;
@@ -713,7 +742,7 @@ struct list_file_content *fill_lfc (struct initial_path_info *ipi) {
 				return NULL;
 			}
 			
-			char *lfc_a[7];
+			char *lfc_a[8];
 			lfc->ID[0] = '\0';
 			lfc->filename[0] = '\0';
 			lfc->trashed_filename[0] = '\0';
@@ -721,6 +750,7 @@ struct list_file_content *fill_lfc (struct initial_path_info *ipi) {
 			lfc->time[0] = '\0';
 			lfc->originalpath[0] = '\0';
 			lfc->tmp[0] = '\0';
+			lfc->is_dir[0] = '\0';
 			lfc_a[0] = lfc->ID;
 			lfc_a[1] = lfc->filename;
 			lfc_a[2] = lfc->trashed_filename;
@@ -728,9 +758,10 @@ struct list_file_content *fill_lfc (struct initial_path_info *ipi) {
 			lfc_a[4] = lfc->time;
 			lfc_a[5] = lfc->originalpath;
 			lfc_a[6] = lfc->tmp;
+			lfc_a[7] = lfc->is_dir;
 			int i = 0;
 			int linenum = 1;
-			for ( ; i < 7 ; i++, linenum++) {
+			for ( ; i < 8 ; i++, linenum++) {
 				char *line;
 				size_t start;
 				if(get_line(stat_fullpath, linenum, &line, &start) == FUNCTION_FAILURE) {
@@ -766,6 +797,18 @@ struct list_file_content *fill_lfc (struct initial_path_info *ipi) {
 
 }
 
+int remove_nftw(const char *fpath, const struct stat *sb, int typeflag, struct FTW *ftwbuf) {
+	(void) sb;
+	(void) typeflag;
+	(void) ftwbuf;
+	int rmn = remove(fpath);
+	if (rmn) {
+		fprintf(stderr, "fail\n");
+	}
+
+	return rmn;
+}
+
 int clear_all_files (char *paths) {
 	
 	struct dirent *ddd;
@@ -792,7 +835,21 @@ int clear_all_files (char *paths) {
 			closedir(dir);
 			return FUNCTION_FAILURE;
 		}
-		int rm = remove(all);
+		int rm;
+		struct stat s;
+		stat(all, &s);
+		if(S_ISDIR(s.st_mode)) {
+			cvm_fprintf(v_cvm_fprintf, stdout, "clear_old_files: dir\n");
+			rm = nftw(all, remove_nftw, 64, FTW_DEPTH | FTW_PHYS);
+			if(rm == -1) {
+				fprintf(stdout, "failed to remove: %s\n", ddd->d_name);
+				continue;
+			}
+			cvm_fprintf(v_cvm_fprintf, stdout, "removed %s\n", ddd->d_name);
+			continue;
+		}
+
+		rm = remove(all);
 		if(rm == -1) {
 			fprintf(stdout, "failed to remove: %s\n", ddd->d_name);
 			continue;
@@ -859,8 +916,18 @@ int clear_old_files (int file_age_in_days, struct initial_path_info *ipi) {
 			fprintf(stderr, "Paths are too long. Continuing to next file.\n");
 			continue;
 		}
+		int rm2;
+		struct stat s;
+		stat(cur_trashed_path, &s);
+		if(S_ISDIR(s.st_mode)) {
+			cvm_fprintf(v_cvm_fprintf, stdout, "clear_old_files: dir\n");
+			rm2 = nftw(cur_trashed_path, remove_nftw, 64, FTW_DEPTH | FTW_PHYS);
+			continue;
+		} else {
+			rm2 = remove(cur_trashed_path);
+		}
+		
 		int rm1 = remove(cur_log_path);
-		int rm2 = remove(cur_trashed_path);
 		if(rm1 == -1 || rm2 == -1) {
 			if(rm1 == -1) {fprintf(stdout, "failed to remove: %s\n", cur_log_path);}
 			if(rm2 == -1) {fprintf(stdout, "failed to remove: %s\n", cur_trashed_path);}
