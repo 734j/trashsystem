@@ -13,7 +13,23 @@
 #include <dirent.h>
 #include <stdarg.h>
 
-#define USAGE "to be decided"
+#define USAGE "tsr [-vt] [-y][-n][-f][-a][-l][-L][-c][-C][-h][-R id] [FILE]\n"
+#define LONG_USAGE "tsr [options] filename\n"\
+	               "\n"\
+	               "OPTIONS:\n"\
+	               "  -v               Verbose mode, not recommended.\n"\
+	               "  -t               /tmp mode. tsr will use /tmp instead of the user's $HOME\n"\
+	               "  -y               Answer 'yes' when pressing return on all [Y / N] prompts.\n"\
+	               "  -n               Answer 'no' when pressing return on all [Y / N] prompts.\n"\
+	               "  -f               Force answer 'yes' on all [Y / N] prompts. Prompt will not show.\n"\
+	               "  -a               Always ask with a [Y / N] prompt.\n"\
+	               "  -l               List all trashed files.\n"\
+	               "  -L               List all trashed files with more details.\n"\
+	               "  -c               Clear all trashed files that are older than the configured time limit.\n"\
+	               "  -C               Clear all trashed files regardless of age. Will prompt with a [Y / N] prompt.\n"\
+	               "  -h               Display this help message.\n"\
+	               "  -R id            Restore a file by ID. Use -l or -L to find the ID associated with the file.\n"\
+	               "\n"  
 #define MODE_NORMAL -1
 #define MODE_YES 0
 #define MODE_NO 1
@@ -24,6 +40,7 @@
 #define FUNCTION_SUCCESS 0
 #define REM_SZ(remsz, final) (remsz - strlen(final)) 
 #define USAGE_OUT(stream) (fprintf(stream, "%s", USAGE))
+#define USAGE_OUT_L(stream) (fprintf(stream, "%s", LONG_USAGE))
 
 bool v_cvm_fprintf = false;
 int choice_mode = MODE_NORMAL;
@@ -947,7 +964,7 @@ int main (int argc, char *argv[]) {
 			
 		break;
 		case 'h':
-			USAGE_OUT(stdout);
+			USAGE_OUT_L(stdout);
 			return EXIT_SUCCESS;
 		break;
         }
