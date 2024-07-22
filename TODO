@@ -1,4 +1,4 @@
-1. Fix issue where older files will show up on the bottom for -L and -l  
+1. Implement restoring files (-R)
 2. 
 3. Make style and conventions more consistent
 4. 
