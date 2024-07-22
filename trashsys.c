@@ -916,18 +916,19 @@ int clear_old_files (int file_age_in_days, struct initial_path_info *ipi) {
 			fprintf(stderr, "Paths are too long. Continuing to next file.\n");
 			continue;
 		}
+		int rm1;
 		int rm2;
 		struct stat s;
 		stat(cur_trashed_path, &s);
 		if(S_ISDIR(s.st_mode)) {
 			cvm_fprintf(v_cvm_fprintf, stdout, "clear_old_files: dir\n");
+			rm1 = remove(cur_log_path);
 			rm2 = nftw(cur_trashed_path, remove_nftw, 64, FTW_DEPTH | FTW_PHYS);
-			continue;
 		} else {
+			rm1 = remove(cur_log_path);
 			rm2 = remove(cur_trashed_path);
 		}
 		
-		int rm1 = remove(cur_log_path);
 		if(rm1 == -1 || rm2 == -1) {
 			if(rm1 == -1) {fprintf(stdout, "failed to remove: %s\n", cur_log_path);}
 			if(rm2 == -1) {fprintf(stdout, "failed to remove: %s\n", cur_trashed_path);}
