@@ -961,6 +961,8 @@ int main (int argc, char *argv[]) {
 	bool R_used = false;	
 	bool h_used = false;
     int opt;
+	long long unsigned optarg_converted;
+	bool R_failed = false;
     while ((opt = getopt(argc, argv, "ynvfatlLcCR:h")) != -1) {
         switch (opt) {
         case 'y':
@@ -1024,7 +1026,21 @@ int main (int argc, char *argv[]) {
 
 			R_mut = 1;
 			R_used = true;
+			char *endptr = NULL;
+			optarg_converted = strtoull(optarg, &endptr, 10);
+			if(endptr == optarg) { // not valid at all
+				R_failed = true;
+			}
 			
+			if(errno == ERANGE || optarg[0] == '-') {
+				fprintf(stderr, "%s: ID is out of range.\n", argv[0]);
+				R_failed = true;
+			}
+			
+		    if(endptr[0] != '\0' || optarg[0] == '+' || optarg[0] == '0') { // if it starts valid but ends in anything but a \0
+				R_failed = true;    // we know that if it ends in a \0 its valid (i hope)
+			}
+            
 		break;
 		case 'h':
 
@@ -1045,11 +1061,16 @@ int main (int argc, char *argv[]) {
 		return EXIT_FAILURE;
 	}
 
-	if(optind == argc && (l_used || L_used || C_used || c_used || h_used) == false) {
+	if(optind == argc && (l_used || L_used || C_used || c_used || h_used || R_used) == false) {
 		USAGE_OUT(stderr);
 		return EXIT_FAILURE;
 	}
 
+	if(R_failed == true) {
+		USAGE_OUT(stderr);
+		return EXIT_FAILURE;
+	}
+	
 	if(h_used == true) {
 		USAGE_OUT_L(stderr);
 		return EXIT_SUCCESS;
@@ -1074,6 +1095,11 @@ int main (int argc, char *argv[]) {
 	if(cctd == FUNCTION_FAILURE) {
 		fprintf(stderr, "check_create_ts_dirs() error: Cannot create directories\n");
 		return EXIT_FAILURE;
+	}
+	
+	if(R_used == true) {
+		fprintf(stdout, "%llu\n", optarg_converted);
+		return EXIT_SUCCESS;
 	}
 	
 	if(c_used == true) {
