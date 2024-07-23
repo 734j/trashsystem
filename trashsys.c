@@ -262,10 +262,10 @@ char *concat_str (char *final, const ssize_t rem_size, const char *from) {
 	ssize_t from_len = strlen(from);
 
 	if (from_len+1 > rem_size) {
-		cvm_fprintf(v_cvm_fprintf, stdout, "IF: from_len: %li\nIF: rem_size: %li\n", from_len+1, rem_size);
+		//cvm_fprintf(v_cvm_fprintf, stdout, "IF: from_len: %li\nIF: rem_size: %li\n", from_len+1, rem_size);
 		return NULL;
 	}
-	cvm_fprintf(v_cvm_fprintf, stdout, "Ffrom_len: %li\nRrem_size: %li\n", from_len+1, rem_size);
+	//cvm_fprintf(v_cvm_fprintf, stdout, "Ffrom_len: %li\nRrem_size: %li\n", from_len+1, rem_size);
 	strcat(final, from);
 	return final;
 }
@@ -415,7 +415,7 @@ int check_create_ts_dirs(const struct initial_path_info *ipi) { // 1. Check if t
 int64_t find_highest_id (const struct initial_path_info *ipi) { 
 	// We need to check whether a file is a directory or just a file. 
 	int64_t id = 0;
-	struct dirent *ddd;
+	struct dirent *ddd = NULL;
 	DIR *dir = opendir(ipi->ts_path_log);
 	if (dir == NULL) {
 		return FUNCTION_FAILURE;
@@ -443,7 +443,7 @@ int64_t find_highest_id (const struct initial_path_info *ipi) {
 		
 		if(S_ISREG(d_or_f.st_mode)) { // check if given file is actually a file
 			cvm_fprintf(v_cvm_fprintf, stdout, "is regular file: %s\nstat_fullpath: %s\n", ddd->d_name, stat_fullpath);
-			char *endptr;
+			char *endptr = NULL;
 			int64_t strtoll_ID = strtoull(ddd->d_name, &endptr, 10);
 			if(ddd->d_name == endptr) {
 				cvm_fprintf(v_cvm_fprintf, stdout, "d_name == endptr | d_name: %p | endptr: %p | d_name string: %s\n", ddd->d_name, endptr, ddd->d_name);
@@ -466,7 +466,7 @@ int64_t find_highest_id (const struct initial_path_info *ipi) {
 
 int tli_fill_info (struct trashsys_log_info *tli, char* filename, const bool log_tmp, struct initial_path_info *ipi) { 
 	// This function will be the main function that gathers and fills out info that will be in the log file for a file a user wants to trash
-	char *rp;
+	char *rp = NULL;
 	time_t curtime;
 	rp = realpath(filename, NULL); // get full entire path of the file
 	if (rp == NULL) {
@@ -480,6 +480,7 @@ int tli_fill_info (struct trashsys_log_info *tli, char* filename, const bool log
 		return FUNCTION_FAILURE;
 	}
 	free(rp);
+	rp = NULL;
 	if(concat_str(tli->ts_log_filename, FILENAME_MAX, basename(filename)) == NULL) {
 		return FUNCTION_FAILURE;
 	}
@@ -490,9 +491,9 @@ int tli_fill_info (struct trashsys_log_info *tli, char* filename, const bool log
 	tli->ts_log_trashtime = curtime;
 	
 	struct stat s;
-	char *rp2 = realpath(filename, NULL);
-	stat(rp2, &s);
-	free(rp2);
+	rp = realpath(filename, NULL);
+	stat(rp, &s);
+	free(rp);
 	if(S_ISDIR(s.st_mode)) {
 		tli->ts_is_dir = true;
 		tli->ts_log_filesize = 0;
@@ -587,7 +588,7 @@ int write_log_file (struct dynamic_paths *dp, struct trashsys_log_info *tli, con
 
 char *rawtime_to_readable (time_t rawtime) {
 
-	struct tm *tmp;
+	struct tm *tmp = NULL;
 	char *pretty_time = malloc(sizeof(char) * 512);
 	tmp = localtime(&rawtime);
 	if(strftime(pretty_time, 512, "%F", tmp) == 0) {
@@ -622,12 +623,12 @@ int lfc_formatted (struct list_file_content *lfc, const bool L_used) {
 
 	time_t rawtime;
     size_t filesize_bytes;
-	char *endptr;
-	char *endptr2;
-	char *pretty_time;
+	char *endptr = NULL;
+	char *endptr2 = NULL;
+	char *pretty_time = NULL;
 	char *dir = "directory";
 	char *file = "file";
-	char *type;
+	char *type = NULL;
 	
 	rawtime = (time_t)strtoll(lfc->time, &endptr, 10);
 	if (errno == ERANGE || lfc->time == endptr) {
@@ -650,7 +651,7 @@ int lfc_formatted (struct list_file_content *lfc, const bool L_used) {
 		type = dir;
 	}
 	
-	char *fff;
+	char *fff = NULL;
 	size_t str_len = 1024;
 	char readable_mib_str[str_len];
 	readable_mib_str[0] = '\0';
@@ -683,7 +684,7 @@ int lfc_formatted (struct list_file_content *lfc, const bool L_used) {
 }
 
 void free_lfc (struct list_file_content *lfc) {
-	struct list_file_content *save;
+	struct list_file_content *save = NULL;
     while (lfc != NULL) {
         save = lfc;
         lfc = lfc->next;
@@ -693,7 +694,7 @@ void free_lfc (struct list_file_content *lfc) {
 
 struct list_file_content *fill_lfc (struct initial_path_info *ipi) {
 
-	struct dirent *ddd;
+	struct dirent *ddd = NULL;
 	DIR *dir = opendir(ipi->ts_path_log);
 	if (dir == NULL) {
 		return NULL;
@@ -742,7 +743,7 @@ struct list_file_content *fill_lfc (struct initial_path_info *ipi) {
 				return NULL;
 			}
 			
-			char *lfc_a[8];
+			char *lfc_a[8] = {NULL};
 			lfc->ID[0] = '\0';
 			lfc->filename[0] = '\0';
 			lfc->trashed_filename[0] = '\0';
@@ -762,7 +763,7 @@ struct list_file_content *fill_lfc (struct initial_path_info *ipi) {
 			int i = 0;
 			int linenum = 1;
 			for ( ; i < 8 ; i++, linenum++) {
-				char *line;
+				char *line = NULL;
 				size_t start;
 				if(get_line(stat_fullpath, linenum, &line, &start) == FUNCTION_FAILURE) {
 					free_lfc(lfc_head);
@@ -811,7 +812,7 @@ int remove_nftw(const char *fpath, const struct stat *sb, int typeflag, struct F
 
 int clear_all_files (char *paths) {
 	
-	struct dirent *ddd;
+	struct dirent *ddd = NULL;
 	DIR *dir = opendir(paths);
 	if (dir == NULL) {
 		return FUNCTION_FAILURE;
@@ -885,11 +886,11 @@ int compare_unixtime (time_t deleted_time, int difference_in_days) {
 int clear_old_files (int file_age_in_days, struct initial_path_info *ipi) {
 
 	struct list_file_content *lfc = fill_lfc(ipi);
-	struct list_file_content *walk;
+	struct list_file_content *walk = NULL;
 	int i = 1;
 	if(lfc == NULL) { return EXIT_SUCCESS; }
 	for(walk = lfc ; walk != NULL ; walk = walk->next, i++) {
-		char *endptr;
+		char *endptr = NULL;
 		time_t deleted_time = (time_t)strtoll(walk->time, &endptr, 10);
 		if (errno == ERANGE || lfc->time == endptr) {
 			fprintf(stdout, "strtoll fail\n");
@@ -1068,7 +1069,6 @@ int main (int argc, char *argv[]) {
 		fprintf(stderr, "check_create_ts_dirs() error: Cannot create directories\n");
 		return EXIT_FAILURE;
 	}
-
 	if(c_used == true) {
 		clear_old_files(30, &ipi_m);
 		return EXIT_SUCCESS;
@@ -1081,10 +1081,9 @@ int main (int argc, char *argv[]) {
 		clear_all_files(ipi_m.ts_path_trashed_withslash); 
 		return EXIT_SUCCESS;
 	}
-
 	if(l_used == true || L_used == true) {
 		struct list_file_content *lfc = fill_lfc(&ipi_m);
-		struct list_file_content *walk;
+		struct list_file_content *walk = NULL;
 		int i = 1;
 		//int lfc_formatted (struct list_file_content *lfc, const bool L_used)
 		if(lfc == NULL) { return EXIT_SUCCESS; }
@@ -1094,7 +1093,6 @@ int main (int argc, char *argv[]) {
 		free_lfc(lfc);
 		return EXIT_SUCCESS;
 	}
-	
 	int index;
 	for (index = optind ; index < argc ; index++) {
    		struct trashsys_log_info tli_m;
