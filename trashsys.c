@@ -89,16 +89,9 @@ struct initial_path_info { // Initial useful strings to create before we do anyt
 	char ts_path_trashed_withslash[PATH_MAX];
 };
 
-int handle_ynf (const bool y_used, const bool n_used, const bool f_used) { // Will handle cases for y, n and f. Exits if any of these are used together.
+int handle_ynf (const bool y_used, const bool n_used, const bool f_used) {
 
 	int choice_mode_ynf = MODE_NORMAL;
-
-	if (n_used == true && y_used == true) { // If both YES and NO are used print usage and exit
-        fprintf(stderr, "%s", USAGE);
-        exit(EXIT_FAILURE);
-    } else if (n_used == true && f_used == true) { fprintf(stderr, "%s", USAGE); exit(EXIT_FAILURE); }
-	else if (y_used == true && f_used == true) { fprintf(stderr, "%s", USAGE); exit(EXIT_FAILURE); }
-
 	if (n_used == true) { choice_mode_ynf = MODE_NO; }
    	if (y_used == true) { choice_mode_ynf = MODE_YES; }
 	if (f_used == true) { choice_mode_ynf = MODE_FORCE; }
@@ -110,32 +103,27 @@ int choice (const int mode) {
 
     char choice;
     char modechoice;
-
     do {
-
-    if (mode == MODE_NORMAL) { fputs("[Y / N] ? ", stdout); }
-    if (mode == MODE_YES) { fputs("[Y / n] ? ", stdout); }
-    if (mode == MODE_NO) { fputs("[y / N] ? ", stdout); }
-	if (mode == MODE_FORCE) { return 0; }
+		if (mode == MODE_NORMAL) { fputs("[Y / N] ? ", stdout); }
+		if (mode == MODE_YES) { fputs("[Y / n] ? ", stdout); }
+		if (mode == MODE_NO) { fputs("[y / N] ? ", stdout); }
+		if (mode == MODE_FORCE) { return 0; }
 	
-    choice = getchar();
-    if (choice == '\n' && mode == MODE_YES) { modechoice = 'Y'; choice = modechoice; goto modeskip;}
-    if (choice == '\n' && mode == MODE_NO) { modechoice = 'N'; choice = modechoice; goto modeskip;}
-    if (choice == '\n' && mode == MODE_NORMAL) { continue; }
+		choice = getchar();
+		if (choice == '\n' && mode == MODE_YES) { modechoice = 'Y'; choice = modechoice; goto modeskip;}
+		if (choice == '\n' && mode == MODE_NO) { modechoice = 'N'; choice = modechoice; goto modeskip;}
+		if (choice == '\n' && mode == MODE_NORMAL) { continue; }
 
-    while ('\n' != getchar());
+		while ('\n' != getchar());
 
     } while ( (choice != 'Y') && (choice != 'y') && (choice != 'N') && (choice != 'n') );
 
     modeskip:
-
-    if ( (choice == 'Y') || (choice == 'y') ) 
-    {
+    if ((choice == 'Y') || (choice == 'y')) {
         return 0;
     }
 
-    if ((choice == 'N') || (choice == 'n') )
-    {
+    if ((choice == 'N') || (choice == 'n')) {
         return 1;
     }
 
@@ -146,7 +134,6 @@ int get_line (const char *filename, long focus, char **line, size_t *start) { //
     
     FILE *file;
     file = fopen(filename,"r"); // Open file
-
     if (file == NULL) { // Check if you can open file
         fprintf(stderr, "Cannot open file get_line.\n");
         return FUNCTION_FAILURE;
@@ -165,25 +152,22 @@ int get_line (const char *filename, long focus, char **line, size_t *start) { //
                 c1_count++;
             }
         }                       // checks how many characters are in the first line
+		
         char c1buf[c1_count+1];
         fseek(file, 0, SEEK_SET);
-        
         int i = 0;
-
         for (; i < c1_count ; i++) {
             c1buf[i] = fgetc(file);
         }
+		
         c1buf[i] = '\0';
         *line = (char *)malloc(strlen(c1buf) + 1);
-
         if (*line != NULL) {
             strcpy(*line, c1buf); // Return line 1
         }
 		
         *start = 0; // Is start the start of where line
-
     } else {
-
         focus--;
         size_t line_count = 0; // Counter starting at 0
         size_t save_i = 0;
@@ -192,6 +176,7 @@ int get_line (const char *filename, long focus, char **line, size_t *start) { //
             if (feof(file)) { // If end of file is encountered then break
                 break; 
             }
+			
             if (c == '\n') {
                 line_count++;
                 if (line_count == (size_t)focus) {
@@ -200,8 +185,8 @@ int get_line (const char *filename, long focus, char **line, size_t *start) { //
                 }
             }
         }
+		
         fseek(file, save_i+1, SEEK_SET);
-        
         int c2_count = 0;
         while (1) {
             char c = fgetc(file);
@@ -221,14 +206,14 @@ int get_line (const char *filename, long focus, char **line, size_t *start) { //
         for (; i < c2_count ; i++) {
             c2buf[i] = fgetc(file);
         }
-        c2buf[i] = '\0';
-        *line = (char *)malloc(strlen(c2buf) + 1);
 
+		c2buf[i] = '\0';
+        *line = (char *)malloc(strlen(c2buf) + 1);
         if (*line != NULL) {
             strcpy(*line, c2buf);
         }
+		
         *start = save_i+1; // not sure but i think it saves the start position of the line
-        
     }
     
     fclose(file);
@@ -245,7 +230,6 @@ int cvm_fprintf (const bool ONOROFF, FILE *stream, const char *format, ...) {
     va_start(args, format);
     int result = vfprintf(stream, format, args);
     va_end(args);
-
     return result;
 } 
 
@@ -260,12 +244,10 @@ char *concat_str (char *final, const ssize_t rem_size, const char *from) {
 	}
 	
 	ssize_t from_len = strlen(from);
-
 	if (from_len+1 > rem_size) {
-		//cvm_fprintf(v_cvm_fprintf, stdout, "IF: from_len: %li\nIF: rem_size: %li\n", from_len+1, rem_size);
 		return NULL;
 	}
-	//cvm_fprintf(v_cvm_fprintf, stdout, "Ffrom_len: %li\nRrem_size: %li\n", from_len+1, rem_size);
+	
 	strcat(final, from);
 	return final;
 }
@@ -279,7 +261,6 @@ int fill_ipi (const bool t_used, struct initial_path_info *ipi) { // Function fo
 	const char *ts_log_withslash = "/log/";	
    	const char *ts_trashed_withslash = "/trashed/";
 	char *homepath;
-
 	const char *ts_tmp = "/tmp";
 	const char *ts_tmp_toplevel = "/tmp/.trashsys";
 	const char *ts_tmp_log = "/tmp/.trashsys/log";
@@ -288,7 +269,6 @@ int fill_ipi (const bool t_used, struct initial_path_info *ipi) { // Function fo
 	const char *ts_tmp_toplevel_withslash = "/tmp/.trashsys/";
 	const char *ts_tmp_log_withslash = "/tmp/.trashsys/log/";
 	const char *ts_tmp_trashed_withslash = "/tmp/.trashsys/trashed/";
-	
 	ipi->ts_path_user_home[0] = '\0'; // Add null character to all of them because we'll be using concat_str (basically strcat) later
 	ipi->ts_path_trashsys[0] = '\0';
 	ipi->ts_path_log[0] = '\0';
@@ -374,9 +354,8 @@ int fill_ipi (const bool t_used, struct initial_path_info *ipi) { // Function fo
 			fprintf(stderr, "fill_ipi: path is too long\n");
 			return FUNCTION_FAILURE;
 		}
-
-		
 	}
+	
 	cvm_fprintf(v_cvm_fprintf, stdout, "%s\n%s\n%s\n%s\n%s\n%s\n%s\n%s\n"
 				, ipi->ts_path_user_home
 				, ipi->ts_path_trashsys
@@ -387,7 +366,6 @@ int fill_ipi (const bool t_used, struct initial_path_info *ipi) { // Function fo
 				, ipi->ts_path_log_withslash
 				, ipi->ts_path_trashed_withslash
 				);
-
 	return FUNCTION_SUCCESS;
 }
 
@@ -420,12 +398,10 @@ int64_t find_highest_id (const struct initial_path_info *ipi) {
 	if (dir == NULL) {
 		return FUNCTION_FAILURE;
 	}
+	
 	while ((ddd = readdir(dir)) != NULL) {
-		
-		// MUST BE TESTED MORE!!!
 		char stat_fullpath[PATH_MAX];
 		stat_fullpath[0] = '\0';
-
 		if(concat_str(stat_fullpath, PATH_MAX, ipi->ts_path_log_withslash) == NULL) {
 			fprintf(stderr, "Path is too long\n"); // rare case but at least its handled
 			closedir(dir);
@@ -440,7 +416,6 @@ int64_t find_highest_id (const struct initial_path_info *ipi) {
 		
 		struct stat d_or_f;
 		stat(stat_fullpath, &d_or_f);
-		
 		if(S_ISREG(d_or_f.st_mode)) { // check if given file is actually a file
 			cvm_fprintf(v_cvm_fprintf, stdout, "is regular file: %s\nstat_fullpath: %s\n", ddd->d_name, stat_fullpath);
 			char *endptr = NULL;
@@ -449,16 +424,17 @@ int64_t find_highest_id (const struct initial_path_info *ipi) {
 				cvm_fprintf(v_cvm_fprintf, stdout, "d_name == endptr | d_name: %p | endptr: %p | d_name string: %s\n", ddd->d_name, endptr, ddd->d_name);
 				continue;
 			}
+			
 			if(*endptr != ':') {
 				cvm_fprintf(v_cvm_fprintf, stdout, "':' not found for file: %s\n", ddd->d_name);
 				continue;
 			}
+			
 			if(strtoll_ID > id) { // If id is bigger then update it
 				id = strtoll_ID;
 				cvm_fprintf(v_cvm_fprintf, stdout, "found higher ID: %d\n", id);
 			}
 		}
-		
 	}
 	closedir(dir);
 	return id;
@@ -472,13 +448,14 @@ int tli_fill_info (struct trashsys_log_info *tli, char* filename, const bool log
 	if (rp == NULL) {
 		return NOFILE;
 	}
+	
 	tli->ts_log_originalpath[0] = '\0';
 	tli->ts_log_filename[0] = '\0';
-
 	if(concat_str(tli->ts_log_originalpath, PATH_MAX, rp) == NULL) {
 		free(rp);
 		return FUNCTION_FAILURE;
 	}
+	
 	free(rp);
 	rp = NULL;
 	if(concat_str(tli->ts_log_filename, FILENAME_MAX, basename(filename)) == NULL) {
@@ -487,9 +464,11 @@ int tli_fill_info (struct trashsys_log_info *tli, char* filename, const bool log
 
 	tli->ts_log_tmp = log_tmp; // tmp or not?
 	curtime = time(NULL);
-	if (curtime == -1) { return FUNCTION_FAILURE; }
-	tli->ts_log_trashtime = curtime;
+	if (curtime == -1) {
+		return FUNCTION_FAILURE;
+	}
 	
+	tli->ts_log_trashtime = curtime;
 	struct stat s;
 	rp = realpath(filename, NULL);
 	stat(rp, &s);
@@ -508,12 +487,13 @@ int tli_fill_info (struct trashsys_log_info *tli, char* filename, const bool log
 		fclose(file);
 		tli->ts_log_filesize = (size_t)filesize;
 	}
+	
 	int64_t ID = find_highest_id(ipi);
 	if (ID == FUNCTION_FAILURE) {
 		return FUNCTION_FAILURE;
 	}
-	tli->ts_log_id = ID + 1; // +1 because if we are making a new file we need to give it one above highest ID.
 	
+	tli->ts_log_id = ID + 1; // +1 because if we are making a new file we need to give it one above highest ID.	
 	return FUNCTION_SUCCESS;
 }
 
@@ -557,7 +537,6 @@ int fill_dynamic_paths (struct initial_path_info *ipi, struct trashsys_log_info 
 int write_log_file (struct dynamic_paths *dp, struct trashsys_log_info *tli, const bool t_used_aka_tmp) {
 
 	char *tmp_path = "/tmp/";
-
 	if (t_used_aka_tmp == true) {
 		fprintf(stdout, "%s", tmp_path);
 	}
@@ -582,7 +561,6 @@ int write_log_file (struct dynamic_paths *dp, struct trashsys_log_info *tli, con
 			);
 	
 	fclose(file);
-
 	return FUNCTION_SUCCESS;
 }
 
@@ -604,8 +582,7 @@ char *bytes_to_readable_str (size_t bytes, char *str, size_t str_len) {
 	char tmp_str[str_len];
 	double f_bytes = (double)bytes;
 	int count = 0;
-	char *BKMG[] = {"B", "KiB", "MiB", "GiB"};
-	   
+	char *BKMG[] = {"B", "KiB", "MiB", "GiB"};   
 	while (f_bytes >= 1024) {
 		f_bytes = f_bytes / 1024;
 		count++;
@@ -628,23 +605,25 @@ int lfc_formatted (struct list_file_content *lfc, const bool L_used) {
 	char *pretty_time = NULL;
 	char *dir = "directory";
 	char *file = "file";
-	char *type = NULL;
-	
+	char *type = NULL;	
 	rawtime = (time_t)strtoll(lfc->time, &endptr, 10);
 	if (errno == ERANGE || lfc->time == endptr) {
 		fprintf(stdout, "strtoll fail\n");
 		return FUNCTION_FAILURE;
 	}
+	
 	filesize_bytes = (size_t)strtoul(lfc->filesize, &endptr2, 10);
 	if (errno == ERANGE || lfc->filesize == endptr) {
 		fprintf(stdout, "strtoul fail\n");
 		return FUNCTION_FAILURE;
 	}
+	
 	pretty_time = rawtime_to_readable(rawtime);
 	if(pretty_time == NULL){
 		fprintf(stdout, "Cannot convert time to readable\n");
 		return FUNCTION_FAILURE;
 	}
+	
 	if(lfc->is_dir[0] == '0') {
 		type = file;
 	} else if(lfc->is_dir[0] == '1') {
@@ -671,6 +650,7 @@ int lfc_formatted (struct list_file_content *lfc, const bool L_used) {
 		free(pretty_time);
 		return FUNCTION_SUCCESS;
 	}
+	
 	fprintf(stdout, "ID: %s    %s    %s %s    Trashed at: %s    type: %s\n"
 			, lfc->ID
 			, lfc->filename
@@ -684,6 +664,7 @@ int lfc_formatted (struct list_file_content *lfc, const bool L_used) {
 }
 
 void free_lfc (struct list_file_content *lfc) {
+
 	struct list_file_content *save = NULL;
     while (lfc != NULL) {
         save = lfc;
@@ -693,7 +674,7 @@ void free_lfc (struct list_file_content *lfc) {
 }
 
 struct list_file_content *fill_lfc (struct initial_path_info *ipi) {
-
+	
 	struct dirent *ddd = NULL;
 	DIR *dir = opendir(ipi->ts_path_log);
 	if (dir == NULL) {
@@ -705,11 +686,8 @@ struct list_file_content *fill_lfc (struct initial_path_info *ipi) {
 	struct list_file_content *lfc_head = lfc;
 	bool first = true;
 	while ((ddd = readdir(dir)) != NULL) {
-		
-		// must BE TESTED MORE!!!
 		char stat_fullpath[PATH_MAX];
 		stat_fullpath[0] = '\0';
-
 		if(concat_str(stat_fullpath, PATH_MAX, ipi->ts_path_log_withslash) == NULL) {
 			fprintf(stderr, "Path is too long\n"); // rare case but at least its handle
 			free_lfc(lfc_head);
@@ -726,7 +704,6 @@ struct list_file_content *fill_lfc (struct initial_path_info *ipi) {
 		
 		struct stat d_or_f;
 		stat(stat_fullpath, &d_or_f);
-		
 		if(S_ISREG(d_or_f.st_mode)) { // check if given file is actually a file
 			if(first == false) {
 				lfc->next = malloc(sizeof(struct list_file_content)); // Create next node
@@ -735,6 +712,7 @@ struct list_file_content *fill_lfc (struct initial_path_info *ipi) {
 			} else {
 				first = false;
 			}
+			
 			cvm_fprintf(v_cvm_fprintf, stdout, "is regular file: %s\nstat_fullpath: %s\n", ddd->d_name, stat_fullpath);
 			FILE *file = fopen(stat_fullpath, "r");
 			if (file == NULL) {
@@ -770,12 +748,14 @@ struct list_file_content *fill_lfc (struct initial_path_info *ipi) {
 					closedir(dir);
 					return NULL;
 				}
+				
 				if(concat_str(lfc_a[i], PATH_MAX, line) == NULL) {
 					free_lfc(lfc_head);
 					free(line);
 					closedir(dir);
 					return NULL;
 				}
+				
 				for(int si = 0 ;; si++) {
 					if(lfc_a[i][si] == '\n') {
 						lfc_a[i][si] = '\0';
@@ -792,13 +772,14 @@ struct list_file_content *fill_lfc (struct initial_path_info *ipi) {
 		closedir(dir);
 		return NULL;
 	}
+	
 	lfc = NULL;
 	closedir(dir);
 	return lfc_head;
-
 }
 
-int remove_nftw(const char *fpath, const struct stat *sb, int typeflag, struct FTW *ftwbuf) {
+int remove_nftw (const char *fpath, const struct stat *sb, int typeflag, struct FTW *ftwbuf) {
+
 	(void) sb;
 	(void) typeflag;
 	(void) ftwbuf;
@@ -836,6 +817,7 @@ int clear_all_files (char *paths) {
 			closedir(dir);
 			return FUNCTION_FAILURE;
 		}
+		
 		int rm;
 		struct stat s;
 		stat(all, &s);
@@ -856,9 +838,9 @@ int clear_all_files (char *paths) {
 			continue;
 		}
 		
-		cvm_fprintf(v_cvm_fprintf, stdout, "removed %s\n", ddd->d_name);
-		
+		cvm_fprintf(v_cvm_fprintf, stdout, "removed %s\n", ddd->d_name);	
 	}
+	
 	closedir(dir);
 	return FUNCTION_SUCCESS;
 }
@@ -879,6 +861,7 @@ int compare_unixtime (time_t deleted_time, int difference_in_days) {
 		cvm_fprintf(v_cvm_fprintf, stdout, "final is not older than diff_converted\n");
 		return FUNCTION_FAILURE;
 	}
+	
 	cvm_fprintf(v_cvm_fprintf, stdout, "final is older than diff_converted\n");
 	return FUNCTION_SUCCESS;
 }
@@ -896,9 +879,11 @@ int clear_old_files (int file_age_in_days, struct initial_path_info *ipi) {
 			fprintf(stdout, "strtoll fail\n");
 			return FUNCTION_FAILURE;
 		}
+		
 		if(compare_unixtime(deleted_time, file_age_in_days) == FUNCTION_FAILURE) {
 			continue;
 		}
+		
 		char cur_log_path[PATH_MAX];
 		char cur_trashed_path[PATH_MAX];
 		cur_log_path[0] = '\0';
@@ -908,15 +893,18 @@ int clear_old_files (int file_age_in_days, struct initial_path_info *ipi) {
 			fprintf(stderr, "Paths are too long. Continuing to next file.\n");
 			continue;
 		}
+		
 		if(concat_str(cur_log_path, REM_SZ(PATH_MAX, cur_log_path), walk->trashed_filename) == NULL
 			|| concat_str(cur_trashed_path, REM_SZ(PATH_MAX, cur_trashed_path), walk->trashed_filename) == NULL) {
 			fprintf(stderr, "Paths are too long. Continuing to next file.\n");
 			continue;
 		}
+		
 		if(concat_str(cur_log_path, REM_SZ(PATH_MAX, cur_log_path), ".log") == NULL) {
 			fprintf(stderr, "Paths are too long. Continuing to next file.\n");
 			continue;
 		}
+		
 		int rm1;
 		int rm2;
 		struct stat s;
@@ -956,6 +944,10 @@ int main (int argc, char *argv[]) {
 	int c_mut = 0;
 	int L_mut = 0;
 	int l_mut = 0;
+	int y_mut = 0;
+	int n_mut = 0;
+	int f_mut = 0;
+	int h_mut = 0;
 	bool y_used = false;
 	bool n_used = false;
 	bool v_used = false;
@@ -966,30 +958,31 @@ int main (int argc, char *argv[]) {
 	bool L_used = false;
 	bool c_used = false;
 	bool C_used = false;
-	bool R_used = false;
-	
+	bool R_used = false;	
+	bool h_used = false;
     int opt;
-    //int returnval;
-    //char *optarg_copy = NULL; // We will copy optarg to this
     while ((opt = getopt(argc, argv, "ynvfatlLcCR:h")) != -1) {
         switch (opt) {
         case 'y':
 
+			y_mut = 1;
 			y_used = true; // YES on enter
 
         break;
         case 'n':
 
+			n_mut = 1;
             n_used = true; // NO on enter
 
         break;
         case 'v':
-
+			
             v_used = true; // Verbose debug mode
 
         break;
         case 'f':
 
+			f_mut = 1;
             f_used = true; // choice will not ask, it will just say yes by default thus basically "forcing" it
 
         break;
@@ -1034,65 +1027,84 @@ int main (int argc, char *argv[]) {
 			
 		break;
 		case 'h':
-			USAGE_OUT_L(stdout);
-			return EXIT_SUCCESS;
+
+			h_mut = 1;
+			h_used = true;
+
 		break;
         }
     }
 
-	if((R_mut + C_mut + c_mut + L_mut + l_mut) > 1) {
+	if((R_mut + C_mut + c_mut + L_mut + l_mut + h_mut) > 1) {
+		USAGE_OUT(stderr);
+		return EXIT_FAILURE;
+	}
+	
+	if((y_mut + n_mut + f_mut + h_mut) > 1) {
 		USAGE_OUT(stderr);
 		return EXIT_FAILURE;
 	}
 
-	if(optind == argc && (l_used || L_used || C_used || c_used) == false) {
+	if(optind == argc && (l_used || L_used || C_used || c_used || h_used) == false) {
 		USAGE_OUT(stderr);
 		return EXIT_FAILURE;
 	}
-	if(c_used && C_used) {
-		USAGE_OUT(stderr);
-		return EXIT_FAILURE;
+
+	if(h_used == true) {
+		USAGE_OUT_L(stderr);
+		return EXIT_SUCCESS;
 	}
 	
 	if(v_used == true) { v_cvm_fprintf = true; } // Verbose mode
-	cvm_fprintf(v_cvm_fprintf, stdout, "options RCcLltafvny: %d%d%d%d%d%d%d%d%d%d%d\n", R_used, C_used, c_used, L_used, l_used, t_used, a_used, f_used, v_used, n_used, y_used);
+	cvm_fprintf(v_cvm_fprintf, stdout, "options RCcLltafvny: %d%d%d%d%d%d%d%d%d%d%d\n",
+				R_used, C_used, c_used,
+				L_used, l_used, t_used,
+				a_used, f_used, v_used,
+				n_used, y_used
+				);
+
 	choice_mode = handle_ynf(y_used, n_used, f_used);
-	
-	struct initial_path_info ipi_m; // _m because i just want to keep in mind that we're in main which is a bit easier for me
+	struct initial_path_info ipi_m;
 	int cctd;
 	if(fill_ipi(t_used, &ipi_m) == FUNCTION_FAILURE) {
 		fprintf(stderr, "fill_ipi error, exiting...\n");
 		return EXIT_FAILURE;
 	}
+	
 	cctd = check_create_ts_dirs(&ipi_m); // check for or create directories
 	if(cctd == FUNCTION_FAILURE) {
 		fprintf(stderr, "check_create_ts_dirs() error: Cannot create directories\n");
 		return EXIT_FAILURE;
 	}
+	
 	if(c_used == true) {
 		clear_old_files(30, &ipi_m);
 		return EXIT_SUCCESS;
 	}
+	
 	if(C_used == true) {
 		if(choice(choice_mode) == 1) {
 			return EXIT_SUCCESS;
 		}
+
 		clear_all_files(ipi_m.ts_path_log_withslash);
 		clear_all_files(ipi_m.ts_path_trashed_withslash); 
 		return EXIT_SUCCESS;
 	}
+	
 	if(l_used == true || L_used == true) {
 		struct list_file_content *lfc = fill_lfc(&ipi_m);
 		struct list_file_content *walk = NULL;
 		int i = 1;
-		//int lfc_formatted (struct list_file_content *lfc, const bool L_used)
 		if(lfc == NULL) { return EXIT_SUCCESS; }
 		for(walk = lfc ; walk != NULL ; walk = walk->next, i++) {
 			lfc_formatted(walk, L_used);
 		}
+
 		free_lfc(lfc);
 		return EXIT_SUCCESS;
 	}
+	
 	int index;
 	for (index = optind ; index < argc ; index++) {
    		struct trashsys_log_info tli_m;
@@ -1107,6 +1119,7 @@ int main (int argc, char *argv[]) {
 			fprintf(stderr, "%s: cannot process paths\n", basename(argv[0]));
 			continue;
 		}
+		
 		if(write_log_file(&dp, &tli_m, t_used) == -1) {
 			fprintf(stderr, "%s: cannot create logfile\n", basename(argv[0]));
 			continue;
@@ -1125,7 +1138,6 @@ int main (int argc, char *argv[]) {
 					, tli_m.ts_log_filesize
 					, dp.new_trashfile_filename
 					);
-	
 	}
 	
 	return EXIT_SUCCESS;
