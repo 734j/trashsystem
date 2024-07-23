@@ -1062,7 +1062,6 @@ int main (int argc, char *argv[]) {
 				a_used, f_used, v_used,
 				n_used, y_used
 				);
-
 	choice_mode = handle_ynf(y_used, n_used, f_used);
 	struct initial_path_info ipi_m;
 	int cctd;
@@ -1110,8 +1109,11 @@ int main (int argc, char *argv[]) {
    		struct trashsys_log_info tli_m;
 		struct dynamic_paths dp;
 		int tli_fi_r = tli_fill_info(&tli_m , argv[index], false, &ipi_m);
-		if(tli_fi_r == NOFILE || tli_fi_r == FUNCTION_FAILURE) {
+		if(tli_fi_r == NOFILE) {
 			fprintf(stderr, "%s: error '%s': No such file or directory\n", basename(argv[0]), basename(argv[index]));
+			continue;
+		} else if(tli_fi_r == FUNCTION_FAILURE) {
+			fprintf(stderr, "%s: cannot process paths\n", basename(argv[0]));
 			continue;
 		}
 
