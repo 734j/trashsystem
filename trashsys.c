@@ -20,19 +20,19 @@
 #define LONG_USAGE "tsr [options] filename(s)\n"\
 	               "\n"\
 	               "OPTIONS:\n"\
-	               "  -t               /tmp mode. tsr will use /tmp instead of the user's $HOME.\n"\
-	               "  -y               Answer 'yes' when pressing return on all [Y / N] prompts.\n"\
-	               "  -n               Answer 'no' when pressing return on all [Y / N] prompts.\n"\
-	               "  -f               Force answer 'yes' on all [Y / N] prompts. Prompt will not show.\n"\
-	               "  -a               Always ask with a [Y / N] prompt.\n"\
-	               "  -l               List all trashed files.\n"\
-	               "  -L               List all trashed files with more details.\n"\
-	               "  -c               Clear all trashed files that are older than the configured time limit.\n"\
-	               "  -C               Clear all trashed files regardless of age. Will prompt with a [Y / N] prompt.\n"\
-	               "  -h               Display this help message.\n"\
-	               "  -R id            Restore a file by ID. Use -l or -L to find the ID associated with the file.\n"\
-	               "  -v               Verbose mode, not recommended unless you are a developer.\n"\
-	               "  -i               Check for inconsistencies in the logs and trashed files (maybe implement)\n"\
+	               "  -t                      /tmp mode. tsr will use /tmp instead of the user's $HOME.\n"\
+	               "  -y                      Answer 'yes' when pressing return on all [Y / N] prompts.\n"\
+	               "  -n                      Answer 'no' when pressing return on all [Y / N] prompts.\n"\
+	               "  -f                      Force answer 'yes' on all [Y / N] prompts. Prompt will not show.\n"\
+	               "  -a                      Always ask with a [Y / N] prompt.\n"\
+	               "  -l                      List all trashed files.\n"\
+	               "  -L                      List all trashed files with more details.\n"\
+	               "  -c                      Clear all trashed files that are older than the configured time limit.\n"\
+	               "  -C                      Clear all trashed files regardless of age. Will prompt with a [Y / N] prompt.\n"\
+	               "  -h                      Display this help message.\n"\
+	               "  -R id path(optional)    Restore a file by ID. Use -l or -L to find the ID associated with the file.\n"\
+	               "  -v                      Verbose mode, not recommended unless you are a developer.\n"\
+	               "  -i                      Check for inconsistencies in the logs and trashed files (maybe implement)\n"\
 	               "\n"
 #define MODE_NORMAL -1
 #define MODE_YES 0
