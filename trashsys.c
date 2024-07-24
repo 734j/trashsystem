@@ -702,7 +702,7 @@ struct list_file_content *fill_lfc (struct initial_path_info *ipi) {
 			closedir(dir);
 			return NULL;
 		}
-		
+
 		struct stat d_or_f;
 		stat(stat_fullpath, &d_or_f);
 		if(S_ISREG(d_or_f.st_mode)) { // check if given file is actually a file
@@ -935,77 +935,61 @@ int clear_old_files (int file_age_in_days, struct initial_path_info *ipi) {
 
 int restore_file (unsigned long long ID, struct initial_path_info *ipi) {
 
-	char *trashed_filename = NULL;
-	char *original_path = NULL;
-	char log_incl_filename[PATH_MAX];
 	unsigned long long logfile_ID;
-	char *endptr = NULL;
-	struct dirent *ddd = NULL;
-	DIR *dir = opendir(ipi->ts_path_log);
-	if (dir == NULL) {
-		return FUNCTION_FAILURE;
-	}
-
-	fprintf(stdout, "ID: %llu\n", ID);
-	while ((ddd = readdir(dir)) != NULL) {
-		if (strncmp(".", ddd->d_name, 2) == 0 || strncmp("..", ddd->d_name, 3) == 0) {
-			continue;
-		}
-		
+	struct list_file_content *lfc = fill_lfc(ipi);
+	struct list_file_content *walk = NULL;
+	int i = 1;
+	if(lfc == NULL) { return EXIT_SUCCESS; }
+	for(walk = lfc ; walk != NULL ; walk = walk->next, i++) {
+		char *endptr = NULL;
 		logfile_ID = 0;
-		endptr = NULL;
-		logfile_ID = strtoull(ddd->d_name, &endptr, 10);
-		if(endptr == ddd->d_name || endptr[0] != ':') {
-			fprintf(stderr, "%s: Invalid file found. Continuing.\n", g_argv);
+		logfile_ID = strtoll(walk->ID, &endptr, 10);
+		if(errno == ERANGE) {
+			fprintf(stdout, "%s: ID out of range.\n", g_argv);
+			continue;
+		}
+		if(lfc->ID == endptr) {
+			fprintf(stdout, "%s: invalid ID.\n", g_argv);
 			continue;
 		}
 		
-		if(errno == ERANGE) {
-			fprintf(stderr, "%s: Log file ID out of range. Continuing.\n", g_argv);
+		if(logfile_ID != ID) {
+			cvm_fprintf(v_cvm_fprintf, stdout, "logfile_ID != ID.\n");
+			continue;
+		}
+		
+		char cur_log_full[PATH_MAX]; // /home/john/.trashsys/log/1:myfile.txt.log
+		char cur_trashed_full[PATH_MAX]; // /home/john/.trashsys/trashed/1:myfile.txt
+		cur_log_full[0] = '\0';
+		cur_trashed_full[0] = '\0';
+		if(concat_str(cur_log_full, PATH_MAX, ipi->ts_path_log_withslash) == NULL
+		   || concat_str(cur_trashed_full, PATH_MAX, ipi->ts_path_trashed_withslash) == NULL) {
+			fprintf(stderr, "Paths are too long. Continuing to next file.\n");
+			continue;
+		}
+		
+		if(concat_str(cur_log_full, REM_SZ(PATH_MAX, cur_log_full), walk->trashed_filename) == NULL
+		   || concat_str(cur_trashed_full, REM_SZ(PATH_MAX, cur_trashed_full), walk->trashed_filename) == NULL) {
+			fprintf(stderr, "Paths are too long. Continuing to next file.\n");
 			continue;
 		}
 
-		if (logfile_ID != ID) {
-			cvm_fprintf(v_cvm_fprintf, stdout, "logfile_ID != ID\n");
+		if(concat_str(cur_log_full, REM_SZ(PATH_MAX, cur_log_full), ".log") == NULL) {
+			fprintf(stderr, "Paths are too long. Continuing to next file.\n");
 			continue;
 		}
-
-		// We need to read the log entry, get the 6th line and 3rd line
-		// move the trashed file to string containing 6th line
-		// remove log entry
-		log_incl_filename[0] = '\0';
-		if(concat_str(log_incl_filename, PATH_MAX, ipi->ts_path_log_withslash) == NULL
-		   || concat_str(log_incl_filename, REM_SZ(PATH_MAX, log_incl_filename), ddd->d_name) == NULL) {
-			fprintf(stderr, "%s: Cannot process paths.\n", g_argv);
+			
+		int rnm = rename(cur_trashed_full, walk->originalpath);
+		int rm = remove(cur_log_full);
+		if(rm == -1 || rnm == -1) {
+		    fprintf(stderr, "%s: Failed to restore file.\n", g_argv);
+			fprintf(stderr, "cur_trashed_full %s\n", cur_trashed_full);
+			free_lfc(lfc);
+			return FUNCTION_FAILURE;
 		}
-
-		size_t start;
-		if(get_line(log_incl_filename, 6, &original_path, &start) == FUNCTION_FAILURE) { puts("op"); continue; }
-		if(get_line(log_incl_filename, 3, &trashed_filename, &start) == FUNCTION_FAILURE) { puts("tf"); continue; }
-		char *optf[2];
-		optf[0] = original_path;
-		optf[1] = trashed_filename;
-		for(int i = 0 ; i < 2; i++) {
-			for(int si = 0 ;; si++) {
-				if(optf[i][si] == '\n') {
-					optf[i][si] = '\0';
-					break;
-				}
-			}
-		}
-		fprintf(stderr, "%s\n", original_path);
-		fprintf(stderr, "%s\n", trashed_filename);
-		free(original_path);
-		free(trashed_filename);
-		/*
-		if(rename() == -1) {
-			fprintf(stderr, "%s: Cannot move file.\n", g_argv);
-			continue;
-		}
-		*/
+		fprintf(stdout, "Restored to: %s\n", walk->originalpath);
 	}
-
-	closedir(dir);
+	free_lfc(lfc);
 	return FUNCTION_SUCCESS;
 }
 
@@ -1176,8 +1160,9 @@ int main (int argc, char *argv[]) {
 	}
 	
 	if(R_used == true) {
-		restore_file(optarg_converted, &ipi_m);
-		fprintf(stdout, "%llu\n", optarg_converted);
+		if(restore_file(optarg_converted, &ipi_m) == FUNCTION_FAILURE) {
+			return EXIT_FAILURE;
+		}
 		return EXIT_SUCCESS;
 	}
 	
