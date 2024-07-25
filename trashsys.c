@@ -546,7 +546,7 @@ int write_log_file (struct dynamic_paths *dp, struct trashsys_log_info *tli, con
 	FILE *file = fopen(dp->new_logfile_path_incl_name, "w");
 	if(file == NULL) {
 		printf("%s\n", strerror(errno));
-		return -1;
+		return FUNCTION_FAILURE;
 	}
 
 	/*this fprintf is what WRITES in to the logfile*/
@@ -637,7 +637,7 @@ int lfc_formatted (struct list_file_content *lfc, const bool L_used) {
 	readable_mib_str[0] = '\0';
   	fff = bytes_to_readable_str(filesize_bytes, readable_mib_str, str_len);
 	if (L_used == true) {
-		fprintf(stdout, "ID: %s    %s    %s %s    %s B    Trashed at: %s (unixtime: %s)    originalpath: %s    type: %s\n"
+		fprintf(stdout, "ID: %s    %s    %s %s    %s B    Trashed at: %s (unixtime: %s)    originalpath: %s    %s\n"
 				, lfc->ID
 				, lfc->filename
 				, readable_mib_str
@@ -652,7 +652,7 @@ int lfc_formatted (struct list_file_content *lfc, const bool L_used) {
 		return FUNCTION_SUCCESS;
 	}
 	
-	fprintf(stdout, "ID: %s    %s    %s %s    Trashed at: %s    type: %s\n"
+	fprintf(stdout, "ID: %s    %s    %s %s    Trashed at: %s    %s\n"
 			, lfc->ID
 			, lfc->filename
 			, readable_mib_str
@@ -824,7 +824,7 @@ int clear_all_files (char *paths) {
 		stat(all, &s);
 		if(S_ISDIR(s.st_mode)) {
 			cvm_fprintf(v_cvm_fprintf, stdout, "clear_old_files: dir\n");
-			rm = nftw(all, remove_nftw, 64, FTW_DEPTH | FTW_PHYS);
+			rm = nftw(all, remove_nftw, 128, FTW_DEPTH | FTW_PHYS);
 			if(rm == -1) {
 				fprintf(stdout, "failed to remove: %s\n", ddd->d_name);
 				continue;
@@ -965,18 +965,18 @@ int restore_file (unsigned long long ID, struct initial_path_info *ipi) {
 		if(concat_str(cur_log_full, PATH_MAX, ipi->ts_path_log_withslash) == NULL
 		   || concat_str(cur_trashed_full, PATH_MAX, ipi->ts_path_trashed_withslash) == NULL) {
 			fprintf(stderr, "Paths are too long. Continuing to next file.\n");
-			continue;
+			return FUNCTION_FAILURE;
 		}
 		
 		if(concat_str(cur_log_full, REM_SZ(PATH_MAX, cur_log_full), walk->trashed_filename) == NULL
 		   || concat_str(cur_trashed_full, REM_SZ(PATH_MAX, cur_trashed_full), walk->trashed_filename) == NULL) {
 			fprintf(stderr, "Paths are too long. Continuing to next file.\n");
-			continue;
+			return FUNCTION_FAILURE;
 		}
 
 		if(concat_str(cur_log_full, REM_SZ(PATH_MAX, cur_log_full), ".log") == NULL) {
 			fprintf(stderr, "Paths are too long. Continuing to next file.\n");
-			continue;
+			return FUNCTION_FAILURE;
 		}
 			
 		int rnm = rename(cur_trashed_full, walk->originalpath);
@@ -1193,7 +1193,7 @@ int main (int argc, char *argv[]) {
 		free_lfc(lfc);
 		return EXIT_SUCCESS;
 	}
-	
+
 	int index;
 	for (index = optind ; index < argc ; index++) {
    		struct trashsys_log_info tli_m;
@@ -1202,6 +1202,7 @@ int main (int argc, char *argv[]) {
 		if(tli_fi_r == NOFILE) {
 			fprintf(stderr, "%s: error '%s': No such file or directory\n", basename(argv[0]), basename(argv[index]));
 			continue;
+
 		} else if(tli_fi_r == FUNCTION_FAILURE) {
 			fprintf(stderr, "%s: cannot process paths\n", basename(argv[0]));
 			continue;

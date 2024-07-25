@@ -1,5 +1,5 @@
 CC=gcc
-CFLAGS_TESTBIN=-O0 -Wfatal-errors -Wall -Werror -Wextra -g3 -fsanitize=address -Wpedantic -Wformat=2 -Wshadow -Wformat-truncation=2 -Wformat-overflow -fno-common -std=gnu99
+CFLAGS_TESTBIN=-O0 -Wfatal-errors -Wall -Werror -Wextra -g3 -fsanitize=address -fsanitize=leak -Wpedantic -Wformat=2 -Wshadow -Wformat-truncation=2 -Wformat-overflow -fno-common -std=gnu99
 CFLAGS=-O3 -flto -march=native -DNDEBUG -fomit-frame-pointer -s -static -std=gnu99
 TARGET=tsr
 TESTTARGET=tsr-TESTING
@@ -8,7 +8,7 @@ INSTALL_DIRECTORY=/usr/local/bin
 MAKEFLAGS += 
 SRCS=trashsys.c
 SRCS_SP=trashsys_small_paths.c
-P_MAX_SIZE="30"
+P_MAX_SIZE="47"
 
 all: release
 clean:
