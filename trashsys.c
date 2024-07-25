@@ -49,6 +49,7 @@
 bool v_cvm_fprintf = false;
 int choice_mode = MODE_NORMAL;
 char *g_argv = NULL;
+int g_loading = true;
 
 struct trashsys_log_info {
 	int64_t ts_log_id;
@@ -1160,6 +1161,10 @@ int main (int argc, char *argv[]) {
 	}
 	
 	if(R_used == true) {
+	    if(optind != argc) {
+			USAGE_OUT(stderr);
+			return EXIT_FAILURE;
+		}
 		if(restore_file(optarg_converted, &ipi_m) == FUNCTION_FAILURE) {
 			return EXIT_FAILURE;
 		}
