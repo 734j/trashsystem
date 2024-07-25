@@ -539,7 +539,7 @@ int write_log_file (struct dynamic_paths *dp, struct trashsys_log_info *tli, con
 
 	char *tmp_path = "/tmp/";
 	if (t_used_aka_tmp == true) {
-		fprintf(stdout, "%s", tmp_path);
+		cvm_fprintf(v_cvm_fprintf, stdout, "%s", tmp_path);
 	}
 
 	cvm_fprintf(v_cvm_fprintf, stdout, "logfile path: %s\n", dp->new_logfile_path_incl_name);
@@ -1160,6 +1160,11 @@ int main (int argc, char *argv[]) {
 	}
 	
 	if(R_used == true) {
+		if(optind != argc) {
+			USAGE_OUT(stderr);
+			return EXIT_FAILURE;
+		}
+		
 		if(restore_file(optarg_converted, &ipi_m) == FUNCTION_FAILURE) {
 			return EXIT_FAILURE;
 		}
