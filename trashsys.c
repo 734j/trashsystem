@@ -24,8 +24,7 @@
 	               "  -y                      Answer 'yes' when pressing return on all [Y / N] prompts.\n"\
 	               "  -n                      Answer 'no' when pressing return on all [Y / N] prompts.\n"\
 	               "  -f                      Force answer 'yes' on all [Y / N] prompts. Prompt will not show.\n"\
-	               "  -a                      Always ask with a [Y / N] prompt.\n"\
-	               "  -l                      List all trashed files.\n"\
+   	               "  -l                      List all trashed files.\n"\
 	               "  -L                      List all trashed files with more details.\n"\
 	               "  -c                      Clear all trashed files that are older than the configured time limit.\n"\
 	               "  -C                      Clear all trashed files regardless of age. Will prompt with a [Y / N] prompt.\n"\
@@ -270,7 +269,7 @@ int fill_ipi (const bool t_used, struct initial_path_info *ipi) { // Function fo
 	const char *ts_tmp_toplevel_withslash = "/tmp/.trashsys/";
 	const char *ts_tmp_log_withslash = "/tmp/.trashsys/log/";
 	const char *ts_tmp_trashed_withslash = "/tmp/.trashsys/trashed/";
-	ipi->ts_path_user_home[0] = '\0'; // Add null character to all of them because we'll be using concat_str (basically strcat) later
+	ipi->ts_path_user_home[0] = '\0';
 	ipi->ts_path_trashsys[0] = '\0';
 	ipi->ts_path_log[0] = '\0';
 	ipi->ts_path_trashed[0] = '\0';
@@ -281,9 +280,8 @@ int fill_ipi (const bool t_used, struct initial_path_info *ipi) { // Function fo
 	
 	if (t_used == false) {
 		homepath = getenv(ENVVAR_HOME); // Get the home path of the current user
-
 		if (homepath == NULL) {
-			fprintf(stderr, "fill_ipi(): getenv failed");
+			cvm_fprintf(v_cvm_fprintf, stdout, "fill_ipi(): getenv failed");
 			return FUNCTION_FAILURE;
 		}
 
@@ -291,12 +289,12 @@ int fill_ipi (const bool t_used, struct initial_path_info *ipi) { // Function fo
 		// /home/john/
 		if(concat_str(ipi->ts_path_user_home, PATH_MAX, homepath) == NULL
 		   || concat_str(ipi->ts_path_user_home_withslash, PATH_MAX, homepath) == NULL) {
-			fprintf(stderr, "fill_ipi: path is too long\n");
+			cvm_fprintf(v_cvm_fprintf, stdout, "fill_ipi: path is too long\n");
 			return FUNCTION_FAILURE;
 		}
 		
 		if(concat_str(ipi->ts_path_user_home_withslash, REM_SZ(PATH_MAX, ipi->ts_path_user_home_withslash), "/") == NULL) {
-			fprintf(stderr, "fill_ipi: path is too long\n");
+			cvm_fprintf(v_cvm_fprintf, stdout, "fill_ipi: path is too long\n");
 		    return FUNCTION_FAILURE;
 		}
 
@@ -304,13 +302,13 @@ int fill_ipi (const bool t_used, struct initial_path_info *ipi) { // Function fo
 		// /home/john/.trashsys/
 		if(concat_str(ipi->ts_path_trashsys, PATH_MAX, homepath) == NULL
 		   || concat_str(ipi->ts_path_trashsys_withslash, PATH_MAX, homepath) == NULL) { 
-			fprintf(stderr, "fill_ipi: path is too long\n");
+			cvm_fprintf(v_cvm_fprintf, stdout, "fill_ipi: path is too long\n");
 			return FUNCTION_FAILURE;
 		}
 	    
 		if(concat_str(ipi->ts_path_trashsys, REM_SZ(PATH_MAX, ipi->ts_path_trashsys), ts_toplevel) == NULL 
 		   || concat_str(ipi->ts_path_trashsys_withslash, REM_SZ(PATH_MAX, ipi->ts_path_trashsys_withslash), ts_toplevel_withslash) == NULL) {
-			fprintf(stderr, "fill_ipi: path is too long\n");
+			cvm_fprintf(v_cvm_fprintf, stdout, "fill_ipi: path is too long\n");
 			return FUNCTION_FAILURE;
 		}
 
@@ -318,13 +316,13 @@ int fill_ipi (const bool t_used, struct initial_path_info *ipi) { // Function fo
 		// /home/john/.trashsys/log/
 		if(concat_str(ipi->ts_path_log, PATH_MAX, ipi->ts_path_trashsys) == NULL
 		   || concat_str(ipi->ts_path_log_withslash, PATH_MAX, ipi->ts_path_trashsys) == NULL) {
-			fprintf(stderr, "fill_ipi: path is too long\n");
+			cvm_fprintf(v_cvm_fprintf, stdout, "fill_ipi: path is too long\n");
 			return FUNCTION_FAILURE;
 		}
 
 		if(concat_str(ipi->ts_path_log, REM_SZ(PATH_MAX, ipi->ts_path_log), ts_log) == NULL
 		   || concat_str(ipi->ts_path_log_withslash, REM_SZ(PATH_MAX, ipi->ts_path_log_withslash), ts_log_withslash) == NULL) {
-			fprintf(stderr, "fill_ipi: path is too long\n");
+			cvm_fprintf(v_cvm_fprintf, stdout, "fill_ipi: path is too long\n");
 			return FUNCTION_FAILURE;
 		}
 
@@ -332,13 +330,13 @@ int fill_ipi (const bool t_used, struct initial_path_info *ipi) { // Function fo
 		// /home/john/.trashsys/trashed/
 		if(concat_str(ipi->ts_path_trashed, PATH_MAX, ipi->ts_path_trashsys) == NULL
 		   || concat_str(ipi->ts_path_trashed_withslash, PATH_MAX, ipi->ts_path_trashsys) == NULL) {
-			fprintf(stderr, "fill_ipi: path is too long\n");
+			cvm_fprintf(v_cvm_fprintf, stdout, "fill_ipi: path is too long\n");
 			return FUNCTION_FAILURE;
 		}
 
 		if(concat_str(ipi->ts_path_trashed, REM_SZ(PATH_MAX, ipi->ts_path_trashed), ts_trashed) == NULL
 		   || concat_str(ipi->ts_path_trashed_withslash, REM_SZ(PATH_MAX, ipi->ts_path_trashed_withslash), ts_trashed_withslash) == NULL) {
-			fprintf(stderr, "fill_ipi: path is too long\n");
+			cvm_fprintf(v_cvm_fprintf, stdout, "fill_ipi: path is too long\n");
 			return FUNCTION_FAILURE;
 		}
 	
@@ -352,7 +350,7 @@ int fill_ipi (const bool t_used, struct initial_path_info *ipi) { // Function fo
 		   concat_str(ipi->ts_path_log_withslash, PATH_MAX, ts_tmp_log_withslash) == NULL ||
 		   concat_str(ipi->ts_path_trashed_withslash, PATH_MAX, ts_tmp_trashed_withslash) == NULL
 		   ) {
-			fprintf(stderr, "fill_ipi: path is too long\n");
+			cvm_fprintf(v_cvm_fprintf, stdout, "fill_ipi: path is too long\n");
 			return FUNCTION_FAILURE;
 		}
 	}
@@ -792,7 +790,7 @@ int remove_nftw (const char *fpath, const struct stat *sb, int typeflag, struct 
 	return rmn;
 }
 
-int clear_all_files (char *paths) {
+int clear_all_files (char *paths, bool *errors) {
 	
 	struct dirent *ddd = NULL;
 	DIR *dir = opendir(paths);
@@ -815,6 +813,7 @@ int clear_all_files (char *paths) {
 		
 		all[paths_len] = '\0';
 		if(concat_str(all, REM_SZ(PATH_MAX, all), ddd->d_name) == NULL) {
+			cvm_fprintf(v_cvm_fprintf, stdout, "Paths too long\n");
 			closedir(dir);
 			return FUNCTION_FAILURE;
 		}
@@ -826,7 +825,8 @@ int clear_all_files (char *paths) {
 			cvm_fprintf(v_cvm_fprintf, stdout, "clear_old_files: dir\n");
 			rm = nftw(all, remove_nftw, 128, FTW_DEPTH | FTW_PHYS);
 			if(rm == -1) {
-				fprintf(stdout, "failed to remove: %s\n", ddd->d_name);
+				*errors = true;
+				fprintf(stderr, "%s: failed to remove: %s\n", g_argv, ddd->d_name);
 				continue;
 			}
 			cvm_fprintf(v_cvm_fprintf, stdout, "removed %s\n", ddd->d_name);
@@ -835,7 +835,8 @@ int clear_all_files (char *paths) {
 
 		rm = remove(all);
 		if(rm == -1) {
-			fprintf(stdout, "failed to remove: %s\n", ddd->d_name);
+			*errors = true;
+			fprintf(stderr, "%s: failed to remove: %s\n", g_argv, ddd->d_name);
 			continue;
 		}
 		
@@ -877,7 +878,7 @@ int clear_old_files (int file_age_in_days, struct initial_path_info *ipi) {
 		char *endptr = NULL;
 		time_t deleted_time = (time_t)strtoll(walk->time, &endptr, 10);
 		if (errno == ERANGE || lfc->time == endptr) {
-			fprintf(stdout, "strtoll fail\n");
+			cvm_fprintf(v_cvm_fprintf, stdout, "strtoll fail\n");
 			return FUNCTION_FAILURE;
 		}
 		
@@ -891,18 +892,18 @@ int clear_old_files (int file_age_in_days, struct initial_path_info *ipi) {
 		cur_trashed_path[0] = '\0';
 		if(concat_str(cur_log_path, PATH_MAX, ipi->ts_path_log_withslash) == NULL
 			|| concat_str(cur_trashed_path, PATH_MAX, ipi->ts_path_trashed_withslash) == NULL) {
-			fprintf(stderr, "Paths are too long. Continuing to next file.\n");
+			cvm_fprintf(v_cvm_fprintf, stdout, "Paths are too long. Continuing to next file.\n");
 			continue;
 		}
 		
 		if(concat_str(cur_log_path, REM_SZ(PATH_MAX, cur_log_path), walk->trashed_filename) == NULL
 			|| concat_str(cur_trashed_path, REM_SZ(PATH_MAX, cur_trashed_path), walk->trashed_filename) == NULL) {
-			fprintf(stderr, "Paths are too long. Continuing to next file.\n");
+			cvm_fprintf(v_cvm_fprintf, stdout, "Paths are too long. Continuing to next file.\n");
 			continue;
 		}
 		
 		if(concat_str(cur_log_path, REM_SZ(PATH_MAX, cur_log_path), ".log") == NULL) {
-			fprintf(stderr, "Paths are too long. Continuing to next file.\n");
+			cvm_fprintf(v_cvm_fprintf, stderr, "Paths are too long. Continuing to next file.\n");
 			continue;
 		}
 		
@@ -920,8 +921,8 @@ int clear_old_files (int file_age_in_days, struct initial_path_info *ipi) {
 		}
 		
 		if(rm1 == -1 || rm2 == -1) {
-			if(rm1 == -1) {fprintf(stdout, "failed to remove: %s\n", cur_log_path);}
-			if(rm2 == -1) {fprintf(stdout, "failed to remove: %s\n", cur_trashed_path);}
+			if(rm1 == -1) {fprintf(stderr, "%s failed to remove: %s\n", g_argv, cur_log_path);}
+			if(rm2 == -1) {fprintf(stderr, "%s failed to remove: %s\n", g_argv, cur_trashed_path);}
 			continue;
 		}
 		
@@ -945,11 +946,11 @@ int restore_file (unsigned long long ID, struct initial_path_info *ipi) {
 		logfile_ID = 0;
 		logfile_ID = strtoll(walk->ID, &endptr, 10);
 		if(errno == ERANGE) {
-			fprintf(stdout, "%s: ID out of range.\n", g_argv);
+			cvm_fprintf(v_cvm_fprintf, stdout, "ID out of range.\n");
 			continue;
 		}
 		if(lfc->ID == endptr) {
-			fprintf(stdout, "%s: invalid ID.\n", g_argv);
+			cvm_fprintf(v_cvm_fprintf, stdout, "invalid ID.\n");
 			continue;
 		}
 		
@@ -964,26 +965,25 @@ int restore_file (unsigned long long ID, struct initial_path_info *ipi) {
 		cur_trashed_full[0] = '\0';
 		if(concat_str(cur_log_full, PATH_MAX, ipi->ts_path_log_withslash) == NULL
 		   || concat_str(cur_trashed_full, PATH_MAX, ipi->ts_path_trashed_withslash) == NULL) {
-			fprintf(stderr, "Paths are too long. Continuing to next file.\n");
+			cvm_fprintf(v_cvm_fprintf, stdout, "Paths are too long. Continuing to next file.\n");
 			return FUNCTION_FAILURE;
 		}
 		
 		if(concat_str(cur_log_full, REM_SZ(PATH_MAX, cur_log_full), walk->trashed_filename) == NULL
 		   || concat_str(cur_trashed_full, REM_SZ(PATH_MAX, cur_trashed_full), walk->trashed_filename) == NULL) {
-			fprintf(stderr, "Paths are too long. Continuing to next file.\n");
+			cvm_fprintf(v_cvm_fprintf, stdout, "Paths are too long. Continuing to next file.\n");
 			return FUNCTION_FAILURE;
 		}
 
 		if(concat_str(cur_log_full, REM_SZ(PATH_MAX, cur_log_full), ".log") == NULL) {
-			fprintf(stderr, "Paths are too long. Continuing to next file.\n");
+			cvm_fprintf(v_cvm_fprintf, stdout, "Paths are too long. Continuing to next file.\n");
 			return FUNCTION_FAILURE;
 		}
 			
 		int rnm = rename(cur_trashed_full, walk->originalpath);
 		int rm = remove(cur_log_full);
 		if(rm == -1 || rnm == -1) {
-		    fprintf(stderr, "%s: Failed to restore file.\n", g_argv);
-			fprintf(stderr, "cur_trashed_full %s\n", cur_trashed_full);
+		    cvm_fprintf(v_cvm_fprintf, stdout, "%Failed to restore file.\nrnm: %d\nrm: %d\n", rnm, rm);
 			free_lfc(lfc);
 			return FUNCTION_FAILURE;
 		}
@@ -1014,7 +1014,6 @@ int main (int argc, char *argv[]) {
 	bool n_used = false;
 	bool v_used = false;
 	bool f_used = false;
-	bool a_used = false;
 	bool t_used = false;
 	bool l_used = false;
 	bool L_used = false;
@@ -1050,11 +1049,6 @@ int main (int argc, char *argv[]) {
             f_used = true; // choice will not ask, it will just say yes by default thus basically "forcing" it
 
         break;
-		case 'a':
-			
-			a_used = true;
-
-		break;
 	    case 't':
 
 			t_used = true;
@@ -1139,23 +1133,23 @@ int main (int argc, char *argv[]) {
 	}
 	
 	if(v_used == true) { v_cvm_fprintf = true; } // Verbose mode
-	cvm_fprintf(v_cvm_fprintf, stdout, "options RCcLltafvny: %d%d%d%d%d%d%d%d%d%d%d\n",
+	cvm_fprintf(v_cvm_fprintf, stdout, "options RCcLltafvny: %d%d%d%d%d%d%d%d%d%d\n",
 				R_used, C_used, c_used,
 				L_used, l_used, t_used,
-				a_used, f_used, v_used,
-				n_used, y_used
+				f_used, v_used, n_used,
+				y_used
 				);
 	choice_mode = handle_ynf(y_used, n_used, f_used);
 	struct initial_path_info ipi_m;
 	int cctd;
 	if(fill_ipi(t_used, &ipi_m) == FUNCTION_FAILURE) {
-		fprintf(stderr, "fill_ipi error, exiting...\n");
+		fprintf(stderr, "%s: error getting paths, exiting...\n", g_argv);
 		return EXIT_FAILURE;
 	}
 	
 	cctd = check_create_ts_dirs(&ipi_m); // check for or create directories
 	if(cctd == FUNCTION_FAILURE) {
-		fprintf(stderr, "check_create_ts_dirs() error: Cannot create directories\n");
+		fprintf(stderr, "%s: error creating trashsys directories, exiting...\n", g_argv);
 		return EXIT_FAILURE;
 	}
 	
@@ -1166,13 +1160,17 @@ int main (int argc, char *argv[]) {
 		}
 		
 		if(restore_file(optarg_converted, &ipi_m) == FUNCTION_FAILURE) {
+			fprintf(stderr, "%s: failed to restore file."/* Please run %s -i to check for inconsistencies."*/, g_argv/*, g_argv*/);
 			return EXIT_FAILURE;
 		}
 		return EXIT_SUCCESS;
 	}
 	
 	if(c_used == true) {
-		clear_old_files(30, &ipi_m);
+		if(clear_old_files(30, &ipi_m)) {
+			fprintf(stderr, "%s: There was an error clearing old files.", g_argv);
+			return EXIT_FAILURE;
+		}
 		return EXIT_SUCCESS;
 	}
 	
@@ -1180,9 +1178,16 @@ int main (int argc, char *argv[]) {
 		if(choice(choice_mode) == 1) {
 			return EXIT_SUCCESS;
 		}
+		bool errors1 = false;
+		bool errors2 = false;
+		if(clear_all_files(ipi_m.ts_path_trashed_withslash, &errors1) == FUNCTION_FAILURE || errors1 == true) {
+			fprintf(stderr, "%s: There was an error clearing files. Please run %s -i to check for inconsistencies.", g_argv, g_argv);
+		}
 
-		clear_all_files(ipi_m.ts_path_log_withslash);
-		clear_all_files(ipi_m.ts_path_trashed_withslash); 
+		if(clear_all_files(ipi_m.ts_path_log_withslash, &errors2) == FUNCTION_FAILURE || errors2 == true) {
+			fprintf(stderr, "%s: There was an error clearing log files. Please run %s -i to check for inconsistencies", g_argv, g_argv);
+		}
+
 		return EXIT_SUCCESS;
 	}
 	
