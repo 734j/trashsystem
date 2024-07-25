@@ -903,7 +903,7 @@ int clear_old_files (int file_age_in_days, struct initial_path_info *ipi) {
 		}
 		
 		if(concat_str(cur_log_path, REM_SZ(PATH_MAX, cur_log_path), ".log") == NULL) {
-			cvm_fprintf(v_cvm_fprintf, stderr, "Paths are too long. Continuing to next file.\n");
+			cvm_fprintf(v_cvm_fprintf, stdout, "Paths are too long. Continuing to next file.\n");
 			continue;
 		}
 		
