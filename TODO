@@ -1,6 +1,6 @@
-1. Fix commandline options
-2. Implement inconsistency check (-i)
-3. 
+1. Perform tests and fixed on file restoration
+2. Perform tests on commandline options
+3. Implement inconsistency check (-i)
 4. 
 5. Clean up some code, remove redundancy and make everything a little smarter where i can
 6. 
