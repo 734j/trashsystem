@@ -18,8 +18,10 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <cstring>
 #define PATH_MAX 4096
-#define USAGE "tsr [-vt] [-y][-n][-f][-a][-l][-L][-c][-C][-h][-R id] [FILE(s)]\n"
+#define BTRS_MAX 1024
+#define USAGE "tsr [-vt] [-y][-n][-f][-l][-L][-c][-C][-h][-R id] [FILE(s)]\n"
 #define LONG_USAGE "tsr [options] filename(s)\n"\
 	               "\n"\
 	               "OPTIONS:\n"\
@@ -155,18 +157,19 @@ int get_line (const char *filename, long focus, char **line, size_t *start) { //
                 c1_count++;
             }
         }                       // checks how many characters are in the first line
-		
-        char c1buf[c1_count+1];
+
+		std::string c1buf;
         fseek(file, 0, SEEK_SET);
         int i = 0;
         for (; i < c1_count ; i++) {
-            c1buf[i] = fgetc(file);
+            c1buf += fgetc(file);
         }
 		
-        c1buf[i] = '\0';
-        *line = (char *)malloc(strlen(c1buf) + 1);
+        c1buf += '\0';
+		const char *c1bufcopy = c1buf.c_str();
+        *line = (char *)malloc(std::strlen(c1bufcopy) + 1);
         if (*line != NULL) {
-            strcpy(*line, c1buf); // Return line 1
+			std::strcpy(*line, c1bufcopy); // Return line 1
         }
 		
         *start = 0; // Is start the start of where line
@@ -204,16 +207,17 @@ int get_line (const char *filename, long focus, char **line, size_t *start) { //
         }
         
         fseek(file, save_i+1, SEEK_SET);
-        char c2buf[c2_count+1];
+		std::string c2buf;
         int i = 0;
         for (; i < c2_count ; i++) {
-            c2buf[i] = fgetc(file);
+            c2buf += fgetc(file);
         }
 
-		c2buf[i] = '\0';
-        *line = (char *)malloc(strlen(c2buf) + 1);
+		c2buf += '\0';
+		const char *c2bufcopy = c2buf.c_str();
+        *line = (char *)malloc(std::strlen(c2bufcopy) + 1);
         if (*line != NULL) {
-            strcpy(*line, c2buf);
+			std::strcpy(*line, c2bufcopy);
         }
 		
         *start = save_i+1; // not sure but i think it saves the start position of the line
@@ -580,7 +584,7 @@ char *rawtime_to_readable (time_t rawtime) {
 
 std::string bytes_to_readable_str (size_t bytes, char *str, size_t str_len) {
 
-	char tmp_str[str_len];
+	char tmp_str[BTRS_MAX];
 	double f_bytes = (double)bytes;
 	int count = 0;
 	std::vector<std::string> BKMG = {"B", "KiB", "MiB", "GiB"};   
@@ -588,7 +592,7 @@ std::string bytes_to_readable_str (size_t bytes, char *str, size_t str_len) {
 		f_bytes = f_bytes / 1024;
 		count++;
 	}
-	
+
 	snprintf(tmp_str, str_len, "%0.1f", f_bytes);
 	if(concat_str(str, str_len, tmp_str) == NULL) {
 		return NULL;
@@ -634,10 +638,9 @@ int lfc_formatted (struct list_file_content *lfc, const bool L_used) {
 	}
 	
 	std::string fff;
-	size_t str_len = 1024;
-	char readable_mib_str[str_len];
+	char readable_mib_str[BTRS_MAX];
 	readable_mib_str[0] = '\0';
-  	fff = bytes_to_readable_str(filesize_bytes, readable_mib_str, str_len);
+  	fff = bytes_to_readable_str(filesize_bytes, readable_mib_str, BTRS_MAX);
 	const char *fffcstr = fff.c_str();
 	if (L_used == true) {
 		fprintf(stdout, "ID: %s    %s    %s %s    %s B    Trashed at: %s (unixtime: %s)    originalpath: %s    %s\n"
