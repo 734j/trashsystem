@@ -15,6 +15,9 @@
 #include <stdarg.h>
 #include <limits.h>
 #include <sys/stat.h>
+#include <iostream>
+#include <string>
+#include <vector>
 #define PATH_MAX 4096
 #define USAGE "tsr [-vt] [-y][-n][-f][-a][-l][-L][-c][-C][-h][-R id] [FILE(s)]\n"
 #define LONG_USAGE "tsr [options] filename(s)\n"\
@@ -535,9 +538,8 @@ int fill_dynamic_paths (struct initial_path_info *ipi, struct trashsys_log_info 
 
 int write_log_file (struct dynamic_paths *dp, struct trashsys_log_info *tli, const bool t_used_aka_tmp) {
 
-	char *tmp_path = "/tmp/";
 	if (t_used_aka_tmp == true) {
-		cvm_fprintf(v_cvm_fprintf, stdout, "%s", tmp_path);
+		cvm_fprintf(v_cvm_fprintf, stdout, "tmp");
 	}
 
 	cvm_fprintf(v_cvm_fprintf, stdout, "logfile path: %s\n", dp->new_logfile_path_incl_name);
@@ -566,7 +568,7 @@ int write_log_file (struct dynamic_paths *dp, struct trashsys_log_info *tli, con
 char *rawtime_to_readable (time_t rawtime) {
 
 	struct tm *tmp = NULL;
-	char *pretty_time = malloc(sizeof(char) * 512);
+	char *pretty_time = (char*)malloc(sizeof(char) * 512);
 	tmp = localtime(&rawtime);
 	if(strftime(pretty_time, 512, "%F", tmp) == 0) {
 		free(pretty_time);
@@ -576,12 +578,12 @@ char *rawtime_to_readable (time_t rawtime) {
 	return pretty_time;
 }
 
-char *bytes_to_readable_str (size_t bytes, char *str, size_t str_len) {
+std::string bytes_to_readable_str (size_t bytes, char *str, size_t str_len) {
 
 	char tmp_str[str_len];
 	double f_bytes = (double)bytes;
 	int count = 0;
-	char *BKMG[] = {"B", "KiB", "MiB", "GiB"};   
+	std::vector<std::string> BKMG = {"B", "KiB", "MiB", "GiB"};   
 	while (f_bytes >= 1024) {
 		f_bytes = f_bytes / 1024;
 		count++;
@@ -602,9 +604,11 @@ int lfc_formatted (struct list_file_content *lfc, const bool L_used) {
 	char *endptr = NULL;
 	char *endptr2 = NULL;
 	char *pretty_time = NULL;
-	char *dir = "directory";
-	char *file = "file";
-	char *type = NULL;	
+	std::string sdir = "directory";
+	std::string sfile = "file";
+	const char *dir = sdir.c_str();
+	const char *file = sfile.c_str();
+	const char *type = NULL;	
 	rawtime = (time_t)strtoll(lfc->time, &endptr, 10);
 	if (errno == ERANGE || lfc->time == endptr) {
 		fprintf(stdout, "strtoll fail\n");
@@ -629,17 +633,18 @@ int lfc_formatted (struct list_file_content *lfc, const bool L_used) {
 		type = dir;
 	}
 	
-	char *fff = NULL;
+	std::string fff;
 	size_t str_len = 1024;
 	char readable_mib_str[str_len];
 	readable_mib_str[0] = '\0';
   	fff = bytes_to_readable_str(filesize_bytes, readable_mib_str, str_len);
+	const char *fffcstr = fff.c_str();
 	if (L_used == true) {
 		fprintf(stdout, "ID: %s    %s    %s %s    %s B    Trashed at: %s (unixtime: %s)    originalpath: %s    %s\n"
 				, lfc->ID
 				, lfc->filename
 				, readable_mib_str
-				, fff
+				, fffcstr
 				, lfc->filesize
 				, pretty_time
 				, lfc->time
@@ -654,7 +659,7 @@ int lfc_formatted (struct list_file_content *lfc, const bool L_used) {
 			, lfc->ID
 			, lfc->filename
 			, readable_mib_str
-			, fff
+			, fffcstr
 			, pretty_time
 			, type
 			);
@@ -680,7 +685,7 @@ struct list_file_content *fill_lfc (struct initial_path_info *ipi) {
 		return NULL;
 	}
 
-	struct list_file_content *lfc = malloc(sizeof(struct list_file_content)); // first node
+	struct list_file_content *lfc = (list_file_content*)malloc(sizeof(struct list_file_content)); // first node
 	lfc->next = NULL;
 	struct list_file_content *lfc_head = lfc;
 	bool first = true;
@@ -705,7 +710,7 @@ struct list_file_content *fill_lfc (struct initial_path_info *ipi) {
 		stat(stat_fullpath, &d_or_f);
 		if(S_ISREG(d_or_f.st_mode)) { // check if given file is actually a file
 			if(first == false) {
-				lfc->next = malloc(sizeof(struct list_file_content)); // Create next node
+				lfc->next = (list_file_content*)malloc(sizeof(struct list_file_content)); // Create next node
 				lfc = lfc->next; // Point lfc to the newly created node
 				lfc->next = NULL; // Set next to NULL so in case there is a failure, free_lfc wont get a segfault
 			} else {
@@ -1080,7 +1085,7 @@ int main (int argc, char *argv[]) {
 			C_used = true;
 			
 		break;
-		case 'R':
+		case 'R': {
 
 			R_mut = 1;
 			R_used = true;
@@ -1098,7 +1103,7 @@ int main (int argc, char *argv[]) {
 		    if(endptr[0] != '\0' || optarg[0] == '+' || optarg[0] == '0') { // if it starts valid but ends in anything but a \0
 				R_failed = true;    // we know that if it ends in a \0 its valid (i hope)
 			}
-            
+		}
 		break;
 		case 'h':
 
