@@ -15,7 +15,7 @@
 #include <stdarg.h>
 #include <limits.h>
 #include <sys/stat.h>
-
+#define PATH_MAX 4096
 #define USAGE "tsr [-vt] [-y][-n][-f][-a][-l][-L][-c][-C][-h][-R id] [FILE(s)]\n"
 #define LONG_USAGE "tsr [options] filename(s)\n"\
 	               "\n"\
@@ -987,8 +987,10 @@ int restore_file (unsigned long long ID, struct initial_path_info *ipi) {
 			free_lfc(lfc);
 			return FUNCTION_FAILURE;
 		}
+		
 		fprintf(stdout, "Restored to: %s\n", walk->originalpath);
 	}
+	
 	free_lfc(lfc);
 	return FUNCTION_SUCCESS;
 }
@@ -1163,6 +1165,7 @@ int main (int argc, char *argv[]) {
 			fprintf(stderr, "%s: failed to restore file."/* Please run %s -i to check for inconsistencies."*/, g_argv/*, g_argv*/);
 			return EXIT_FAILURE;
 		}
+		
 		return EXIT_SUCCESS;
 	}
 	
@@ -1171,6 +1174,7 @@ int main (int argc, char *argv[]) {
 			fprintf(stderr, "%s: There was an error clearing old files.", g_argv);
 			return EXIT_FAILURE;
 		}
+		
 		return EXIT_SUCCESS;
 	}
 	
