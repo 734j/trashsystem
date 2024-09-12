@@ -922,7 +922,7 @@ int clear_old_files (int file_age_in_days, struct initial_path_info *ipi) {
 		if(S_ISDIR(s.st_mode)) {
 			cvm_fprintf(v_cvm_fprintf, stdout, "clear_old_files: dir\n");
 			rm1 = remove(cur_log_path);
-			rm2 = nftw(cur_trashed_path, remove_nftw, 64, FTW_DEPTH | FTW_PHYS);
+			rm2 = nftw(cur_trashed_path, remove_nftw, 128, FTW_DEPTH | FTW_PHYS);
 		} else {
 			rm1 = remove(cur_log_path);
 			rm2 = remove(cur_trashed_path);
